@@ -4,6 +4,62 @@ import { X, Save, User, Mail, Phone, Calendar, Lock, BookOpen, GraduationCap, Cr
 import { API_BASE_URL }                                                                    from '../../config';
 import './StudentForm.css';
 
+const INDIA_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+];
+
+// Course config matching DB structure exactly
+const COURSE_CONFIG = {
+    NEET: {
+        coursetype: "NEET",
+        courseName: "NEET",
+        standards: ["11th", "12th"],
+        subjects: ["Physics", "Chemistry", "Botany", "Zoology"]
+    },
+    JEE: {
+        coursetype: "JEE",
+        courseName: "JEE",
+        standards: ["11th", "12th"],
+        subjects: ["Physics", "Chemistry", "Maths"]
+    },
+    "Class 6-12": {
+        coursetype: "academics",
+        courseName: "Class 6-12",
+        standards: ["6th", "7th", "8th", "9th", "10th", "11th", "12th"],
+        subjects: ["Mathematics", "Science", "Social Studies", "English", "Hindi"]
+    },
+    "Class 1-5": {
+        coursetype: "academics",
+        courseName: "Class 1-5",
+        standards: ["1st", "2nd", "3rd", "4th", "5th"],
+        subjects: ["Mathematics", "Science", "English", "Hindi", "EVS"]
+    },
+    "Kindergarten": {
+        coursetype: "academics",
+        courseName: "Kindergarten",
+        standards: ["KG1", "KG2"],
+        subjects: ["English", "Numbers", "Rhymes", "Drawing"]
+    }
+};
+
+const planOptions = [
+    { value: 'trial', label: 'Trial', days: 10 },
+    { value: 'monthly', label: 'Monthly', days: 30 },
+    { value: 'quarterly', label: 'Quarterly', days: 90 },
+    { value: 'halfyearly', label: 'Half Yearly', days: 180 },
+    { value: 'yearly', label: 'Yearly', days: 365 }
+];
+
+const severityOptions = [
+     "Competent (70%)", "Proficient (80%)", "Expert (90%)"
+];
+
 const StudentForm = ({ student, onClose, onSave, mode }) => {
     const [formData, setFormData] = useState({
         firstname: '',
@@ -11,13 +67,12 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
         email: '',
         password: '',
         mobile: '',
-        coursetype: 'academics',
-        courseName: '',
+        coursetype: 'NEET',
+        courseName: 'NEET',
         standards: [],
         subjects: [],
-        selectedCourse: {},
-        selectedStandard: [],
-        photo: '',
+        selectedCourse: { NEET: ["11th", "12th"] },
+        selectedStandard: ["11th", "12th"],
         dob: '',
         gender: '',
         city: '',
@@ -26,80 +81,25 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
         startDate: '',
         endDate: '',
         paymentId: '',
-        paymentMethod: '',
+        paymentMethod: 'Razorpay',
         amountPaid: '',
         payerId: '',
-        couponUsed: '',
-        discountPercentage: '',
-        discountAmount: '',
-        action: 'new',
-        comfortableDailyHours: 3,
-        severity: '',
-        paymentHistory: []
+        couponUsed: 'NONE',
+        discountPercentage: '0',
+        discountAmount: '0',
+        comfortableDailyHours: 4,
+        severity: 'Competent (70%)',
+        paymentHistory: [],
+        _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Plan options
-    const planOptions = [
-        { value: 'monthly', label: 'Monthly', days: 30 },
-        { value: 'quarterly', label: 'Quarterly', days: 90 },
-        { value: 'halfyearly', label: 'Half Yearly', days: 180 },
-        { value: 'yearly', label: 'Yearly', days: 365 }
-    ];
-
-    // Course type options
-    const courseTypeOptions = [
-        { value: 'academics', label: 'Academics' },
-        { value: 'professional', label: 'Professional' }
-    ];
-
-    // Course name options based on course type
-    const getCourseNameOptions = () => {
-        if (formData.coursetype === 'academics') {
-            return [
-                { value: 'kindergarten', label: 'Kindergarten' },
-                { value: 'class1-5', label: 'Class 1 - 5' },
-                { value: 'class6-12', label: 'Class 6 - 12' }
-            ];
-        } else if (formData.coursetype === 'professional') {
-            return [
-                { value: 'jee', label: 'JEE' },
-                { value: 'neet', label: 'NEET' }
-            ];
-        }
-        return [];
-    };
-
-    // Standard options based on course name
-    const getStandardOptions = () => {
-        if (formData.courseName === 'class11') return ['11'];
-        if (formData.courseName === 'class12') return ['12'];
-        if (formData.courseName === 'jee' || formData.courseName === 'neet') return ['11', '12'];
-        if (formData.courseName === 'class6-12') return ['6', '7', '8', '9', '10', '11', '12'];
-        if (formData.courseName === 'class1-5') return ['1', '2', '3', '4', '5'];
-        if (formData.courseName === 'kindergarten') return ['KG'];
-        return [];
-    };
-
-    // Subject options based on course name
-    const getSubjectOptions = () => {
-        if (formData.courseName === 'jee') {
-            return ['Physics', 'Chemistry', 'Maths'];
-        } else if (formData.courseName === 'neet') {
-            return ['Physics', 'Chemistry', 'Botany', 'Zoology'];
-        } else if (formData.courseName === 'class11' || formData.courseName === 'class12') {
-            return ['Physics', 'Chemistry', 'Biology', 'Mathematics'];
-        } else if (formData.courseName === 'class6-12') {
-            return ['Mathematics', 'Science', 'Social Studies', 'English', 'Hindi', 'Sanskrit'];
-        } else if (formData.courseName === 'class1-5') {
-            return ['Mathematics', 'Science', 'English', 'Hindi', 'EVS'];
-        } else if (formData.courseName === 'kindergarten') {
-            return ['English', 'Numbers', 'Rhymes', 'Drawing', 'Games'];
-        }
-        return [];
-    };
+    const selectedCourseKey = Object.keys(COURSE_CONFIG).find(
+        key => COURSE_CONFIG[key].courseName === formData.courseName
+    ) || 'NEET';
+    const currentCourseConfig = COURSE_CONFIG[selectedCourseKey];
 
     // Load student data if editing
     useEffect(() => {
@@ -109,14 +109,13 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 lastname: student.lastname || '',
                 email: student.email || '',
                 password: student.password || '',
-                mobile: student.mobile || student.phone || '',
-                coursetype: student.coursetype || 'academics',
-                courseName: student.courseName || '',
+                mobile: student.mobile || '',
+                coursetype: student.coursetype || 'NEET',
+                courseName: student.courseName || 'NEET',
                 standards: student.standards || [],
                 subjects: student.subjects || [],
                 selectedCourse: student.selectedCourse || {},
                 selectedStandard: student.selectedStandard || [],
-                photo: student.photo || '',
                 dob: student.dob || '',
                 gender: student.gender || '',
                 city: student.city || '',
@@ -128,146 +127,139 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 paymentMethod: student.paymentMethod || '',
                 amountPaid: student.amountPaid || '',
                 payerId: student.payerId || '',
-                couponUsed: student.couponUsed || '',
-                discountPercentage: student.discountPercentage || '',
-                discountAmount: student.discountAmount || '',
-                action: student.action || 'edit',
-                comfortableDailyHours: student.comfortableDailyHours || 3,
-                severity: student.severity || '',
-                paymentHistory: student.paymentHistory || []
+                couponUsed: student.couponUsed || 'NONE',
+                discountPercentage: student.discountPercentage || '0',
+                discountAmount: student.discountAmount || '0',
+                comfortableDailyHours: student.comfortableDailyHours || 4,
+                severity: student.severity || 'Competent (70%)',
+                paymentHistory: student.paymentHistory || [],
+                _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
             });
         }
     }, [student, mode]);
 
-    // Calculate end date based on start date and plan
     const calculateEndDate = (startDate, plan) => {
         if (!startDate || !plan) return '';
-
         const selectedPlan = planOptions.find(p => p.value === plan);
         if (!selectedPlan) return '';
-
         const date = new Date(startDate);
         date.setDate(date.getDate() + selectedPlan.days);
-
         return date.toISOString().split('T')[0];
     };
 
-    // Handle start date change
-    const handleStartDateChange = (e) => {
-        const startDate = e.target.value;
-        const endDate = calculateEndDate(startDate, formData.plan);
-        setFormData({
-            ...formData,
-            startDate,
-            endDate
+    const handleCourseChange = (courseKey) => {
+        const config = COURSE_CONFIG[courseKey];
+        if (!config) return;
+        // selectedCourse object: { "NEET": ["11th", "12th"] } — matches DB
+        const selectedCourse = { [config.courseName]: config.standards };
+        setFormData(prev => ({
+            ...prev,
+            coursetype: config.coursetype,
+            courseName: config.courseName,
+            standards: [],
+            subjects: [],
+            selectedCourse,
+            selectedStandard: config.standards // default all selected like DB
+        }));
+    };
+
+    const handleStandardChange = (std) => {
+        const config = COURSE_CONFIG[selectedCourseKey];
+        setFormData(prev => {
+            const current = prev.selectedStandard || [];
+            const updated = current.includes(std)
+                ? current.filter(s => s !== std)
+                : [...current, std];
+            return {
+                ...prev,
+                selectedStandard: updated,
+                // Update selectedCourse object to reflect chosen standards
+                selectedCourse: { [config.courseName]: updated }
+            };
         });
     };
 
-    // Handle plan change
-    const handlePlanChange = (e) => {
-        const plan = e.target.value;
-        const endDate = calculateEndDate(formData.startDate, plan);
-        setFormData({
-            ...formData,
-            plan,
-            endDate
-        });
-    };
-
-    // Handle standard selection
-    const handleStandardChange = (standard) => {
-        const current = formData.selectedStandard || [];
-        const updated = current.includes(standard)
-            ? current.filter(s => s !== standard)
-            : [...current, standard];
-
-        setFormData({
-            ...formData,
-            selectedStandard: updated,
-            standards: updated
-        });
-    };
-
-    // Handle subject selection
     const handleSubjectChange = (subject) => {
-        const current = formData.subjects || [];
-        const updated = current.includes(subject)
-            ? current.filter(s => s !== subject)
-            : [...current, subject];
-
-        setFormData({
-            ...formData,
-            subjects: updated
+        setFormData(prev => {
+            const current = prev.subjects || [];
+            const updated = current.includes(subject)
+                ? current.filter(s => s !== subject)
+                : [...current, subject];
+            return { ...prev, subjects: updated };
         });
     };
 
-    // Handle discount percentage change
-    const handleDiscountPercentageChange = (e) => {
-        const percentage = e.target.value;
-        const amount = formData.amountPaid;
-        let discountAmount = '';
-
-        if (amount && percentage) {
-            discountAmount = (amount * percentage / 100).toFixed(2);
-        }
-
-        setFormData({
-            ...formData,
-            discountPercentage: percentage,
-            discountAmount
-        });
-    };
-
-    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            // Prepare the student data
-            const studentData = {
-                ...formData,
-                // Ensure all fields are properly formatted
-                paymentHistory: formData.paymentHistory || [],
-                selectedCourse: {
-                    ...formData.selectedCourse,
-                    name: formData.courseName,
-                    plan: formData.plan
-                }
+            // Build payload matching DB structure exactly
+            const payload = {
+                firstname: formData.firstname,
+                lastname: formData.lastname,
+                email: formData.email,
+                password: formData.password,
+                mobile: formData.mobile,
+                coursetype: formData.coursetype,
+                courseName: formData.courseName,
+                standards: [],                          // DB shows empty array
+                subjects: [],                           // DB shows empty array
+                selectedCourse: formData.selectedCourse,
+                selectedStandard: formData.selectedStandard,
+                dob: formData.dob,
+                gender: formData.gender,
+                city: formData.city,
+                state: formData.state,
+                plan: formData.plan,
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                paymentId: formData.paymentId || `PAY-${Date.now()}`,
+                paymentMethod: formData.paymentMethod,
+                amountPaid: formData.amountPaid,
+                payerId: formData.payerId || '',
+                comfortableDailyHours: formData.comfortableDailyHours,
+                severity: formData.severity,
+                paymentHistory: formData.paymentHistory,
+                _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
             };
 
-            // Add payment to history if it's a new payment
-            if (formData.amountPaid && mode === 'add') {
-                studentData.paymentHistory = [
-                    {
-                        date: new Date().toISOString().split('T')[0],
-                        action: formData.action,
-                        plan: formData.plan,
-                        amountPaid: formData.amountPaid,
-                        discountPercentage: formData.discountPercentage,
-                        discountAmount: formData.discountAmount,
-                        couponUsed: formData.couponUsed,
-                        paymentId: formData.paymentId || `PAY-${Date.now()}`
-                    },
-                    ...(formData.paymentHistory || [])
-                ];
+            // Build paymentHistory entry for new payment (add/upgrade)
+            if (mode === 'add') {
+                const historyEntry = {
+                    date: new Date().toISOString().split('T')[0],
+                    amountPaid: formData.amountPaid || '0',
+                    paymentId: formData.plan === 'trial'
+                        ? `TRIAL_${Date.now()}`
+                        : (formData.paymentId || `PAY-${Date.now()}`),
+                    action: formData.plan === 'trial' ? 'TRIAL_ACTIVATION' : 'UPGRADE/RENEWAL',
+                    plan: formData.plan,
+                    ...(formData.plan !== 'trial' && {
+                        discountPercentage: formData.discountPercentage || '0',
+                        couponUsed: formData.couponUsed || 'NONE',
+                        payerId: formData.payerId || '',
+                        discountAmount: formData.discountAmount || '0'
+                    })
+                };
+                payload.paymentHistory = [historyEntry];
+                // For trial plan, sync paymentId
+                if (formData.plan === 'trial') {
+                    payload.paymentId = historyEntry.paymentId;
+                    payload.paymentMethod = 'Free Trial';
+                    payload.amountPaid = '0';
+                }
             }
 
-            // Send to backend
             const url = mode === 'edit'
-                ? `${API_BASE_URL}/updateStudent/${studentData.email}`
+                ? `${API_BASE_URL}/updateStudent/${student.email}`
                 : `${API_BASE_URL}/addStudent`;
 
-            const method = mode === 'edit' ? 'PUT' : 'POST';
-
             const response = await fetch(url, {
-                method,
+                method: mode === 'edit' ? 'PUT' : 'POST',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(studentData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -292,86 +284,61 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
             <div className="student-form-container">
                 <div className="student-form-header">
                     <h2>{mode === 'edit' ? 'Edit Student' : 'Add New Student'}</h2>
-                    <button className="close-btn" onClick={onClose}>
-                        <X size={20} />
-                    </button>
+                    <button className="close-btn" onClick={onClose}><X size={20} /></button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="student-form">
                     {error && <div className="form-error">{error}</div>}
 
+                    {/* ── Personal Information ── */}
                     <div className="form-section">
-                        <h3>
-                            <User size={18} /> Personal Information
-                        </h3>
+                        <h3><User size={18} /> Personal Information</h3>
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label>First Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.firstname}
-                                    onChange={(e) => setFormData({ ...formData, firstname: e.target.value })}
-                                    required
-                                />
+                                <input type="text" value={formData.firstname} required
+                                    onChange={e => setFormData({ ...formData, firstname: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label>Last Name</label>
-                                <input
-                                    type="text"
-                                    value={formData.lastname}
-                                    onChange={(e) => setFormData({ ...formData, lastname: e.target.value })}
-                                />
+                                <input type="text" value={formData.lastname}
+                                    onChange={e => setFormData({ ...formData, lastname: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label><Mail size={14} /> Email *</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    required
-                                />
+                                <input type="email" value={formData.email} required
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label><Phone size={14} /> Mobile *</label>
-                                <input
-                                    type="tel"
-                                    value={formData.mobile}
-                                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                                    required
-                                />
+                                <input type="tel" value={formData.mobile} required
+                                    onChange={e => setFormData({ ...formData, mobile: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label><Lock size={14} /> Password *</label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                <input type="password" value={formData.password}
                                     required={mode === 'add'}
-                                />
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label><Calendar size={14} /> Date of Birth</label>
-                                <input
-                                    type="date"
-                                    value={formData.dob}
-                                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                />
+                                <input type="date" value={formData.dob}
+                                    onChange={e => setFormData({ ...formData, dob: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Gender</label>
-                                <select
-                                    value={formData.gender}
-                                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                >
+                                <select value={formData.gender}
+                                    onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
@@ -380,289 +347,194 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                             </div>
                             <div className="form-group">
                                 <label>City</label>
-                                <input
-                                    type="text"
-                                    value={formData.city}
-                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                />
+                                <input type="text" value={formData.city}
+                                    onChange={e => setFormData({ ...formData, city: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
+                            {/* ── State dropdown — all Indian states ── */}
                             <div className="form-group">
                                 <label>State</label>
-                                <input
-                                    type="text"
-                                    value={formData.state}
-                                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Photo URL</label>
-                                <input
-                                    type="url"
-                                    value={formData.photo}
-                                    onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-                                    placeholder="https://example.com/photo.jpg"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="form-section">
-                        <h3>
-                            <GraduationCap size={18} /> Course Information
-                        </h3>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Course Type *</label>
-                                <select
-                                    value={formData.coursetype}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        coursetype: e.target.value,
-                                        courseName: '',
-                                        subjects: [],
-                                        selectedStandard: []
-                                    })}
-                                    required
-                                >
-                                    {courseTypeOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Course Name *</label>
-                                <select
-                                    value={formData.courseName}
-                                    onChange={(e) => setFormData({
-                                        ...formData,
-                                        courseName: e.target.value,
-                                        subjects: [],
-                                        selectedStandard: []
-                                    })}
-                                    required
-                                >
-                                    <option value="">Select Course</option>
-                                    {getCourseNameOptions().map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
+                                <select value={formData.state}
+                                    onChange={e => setFormData({ ...formData, state: e.target.value })}>
+                                    <option value="">Select State</option>
+                                    {INDIA_STATES.map(s => (
+                                        <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
-
-                        {formData.courseName && (
-                            <>
-                                <div className="form-group">
-                                    <label>Standards</label>
-                                    <div className="checkbox-group">
-                                        {getStandardOptions().map(std => (
-                                            <label key={std} className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(formData.selectedStandard || []).includes(std)}
-                                                    onChange={() => handleStandardChange(std)}
-                                                />
-                                                Std {std}
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Subjects</label>
-                                    <div className="checkbox-group">
-                                        {getSubjectOptions().map(subject => (
-                                            <label key={subject} className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={(formData.subjects || []).includes(subject)}
-                                                    onChange={() => handleSubjectChange(subject)}
-                                                />
-                                                {subject}
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </div>
 
+                    {/* ── Course Information ── */}
                     <div className="form-section">
-                        <h3>
-                            <CreditCard size={18} /> Subscription & Payment
-                        </h3>
+                        <h3><GraduationCap size={18} /> Course Information</h3>
+
+                        <div className="form-group">
+                            <label>Course *</label>
+                            <select value={selectedCourseKey}
+                                onChange={e => handleCourseChange(e.target.value)} required>
+                                {Object.keys(COURSE_CONFIG).map(key => (
+                                    <option key={key} value={key}>{key}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Standards</label>
+                            <div className="checkbox-group">
+                                {currentCourseConfig.standards.map(std => (
+                                    <label key={std} className="checkbox-label">
+                                        <input type="checkbox"
+                                            checked={(formData.selectedStandard || []).includes(std)}
+                                            onChange={() => handleStandardChange(std)} />
+                                        {std}
+                                    </label>
+                                ))}
+                            </div>
+                            <small>selectedCourse saved as: {JSON.stringify(formData.selectedCourse)}</small>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Subjects</label>
+                            <div className="checkbox-group">
+                                {currentCourseConfig.subjects.map(subject => (
+                                    <label key={subject} className="checkbox-label">
+                                        <input type="checkbox"
+                                            checked={(formData.subjects || []).includes(subject)}
+                                            onChange={() => handleSubjectChange(subject)} />
+                                        {subject}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Subscription & Payment ── */}
+                    <div className="form-section">
+                        <h3><CreditCard size={18} /> Subscription & Payment</h3>
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Plan *</label>
-                                <select
-                                    value={formData.plan}
-                                    onChange={handlePlanChange}
-                                    required
-                                >
-                                    {planOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label} ({option.days} days)
+                                <select value={formData.plan} required
+                                    onChange={e => {
+                                        const plan = e.target.value;
+                                        const endDate = calculateEndDate(formData.startDate, plan);
+                                        setFormData({ ...formData, plan, endDate });
+                                    }}>
+                                    {planOptions.map(p => (
+                                        <option key={p.value} value={p.value}>
+                                            {p.label} ({p.days} days)
                                         </option>
                                     ))}
                                 </select>
                             </div>
                             <div className="form-group">
                                 <label>Start Date *</label>
-                                <input
-                                    type="date"
-                                    value={formData.startDate}
-                                    onChange={handleStartDateChange}
-                                    required
-                                />
+                                <input type="date" value={formData.startDate} required
+                                    onChange={e => {
+                                        const startDate = e.target.value;
+                                        const endDate = calculateEndDate(startDate, formData.plan);
+                                        setFormData({ ...formData, startDate, endDate });
+                                    }} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label>End Date</label>
-                                <input
-                                    type="date"
-                                    value={formData.endDate}
-                                    readOnly
-                                    className="readonly-field"
-                                />
-                                <small>Auto-calculated based on plan</small>
+                                <input type="date" value={formData.endDate} readOnly className="readonly-field" />
+                                <small>Auto-calculated</small>
                             </div>
                             <div className="form-group">
                                 <label>Amount Paid (₹)</label>
-                                <input
-                                    type="number"
-                                    value={formData.amountPaid}
-                                    onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
-                                />
+                                <input type="number" value={formData.amountPaid}
+                                    onChange={e => setFormData({ ...formData, amountPaid: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Payment Method</label>
-                                <select
-                                    value={formData.paymentMethod}
-                                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                                >
-                                    <option value="">Select Method</option>
-                                    <option value="cash">Cash</option>
-                                    <option value="card">Card</option>
-                                    <option value="upi">UPI</option>
-                                    <option value="bank_transfer">Bank Transfer</option>
-                                    <option value="online">Online Payment</option>
+                                <select value={formData.paymentMethod}
+                                    onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}>
+                                    <option value="Razorpay">Razorpay</option>
+                                    <option value="Free Trial">Free Trial</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
                                 </select>
                             </div>
                             <div className="form-group">
                                 <label>Payment ID</label>
-                                <input
-                                    type="text"
-                                    value={formData.paymentId}
-                                    onChange={(e) => setFormData({ ...formData, paymentId: e.target.value })}
-                                />
+                                <input type="text" value={formData.paymentId}
+                                    placeholder="e.g. pay_SNtP9i5C2PS59J"
+                                    onChange={e => setFormData({ ...formData, paymentId: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Discount Percentage (%)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={formData.discountPercentage}
-                                    onChange={handleDiscountPercentageChange}
-                                />
+                                <label>Payer ID</label>
+                                <input type="text" value={formData.payerId}
+                                    placeholder="e.g. sneka@oksbi"
+                                    onChange={e => setFormData({ ...formData, payerId: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label>Coupon Used</label>
+                                <input type="text" value={formData.couponUsed}
+                                    onChange={e => setFormData({ ...formData, couponUsed: e.target.value })} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Discount %</label>
+                                <input type="number" min="0" max="100" value={formData.discountPercentage}
+                                    onChange={e => {
+                                        const pct = e.target.value;
+                                        const discountAmount = formData.amountPaid
+                                            ? ((formData.amountPaid * pct) / 100).toFixed(2)
+                                            : '0';
+                                        setFormData({ ...formData, discountPercentage: pct, discountAmount });
+                                    }} />
                             </div>
                             <div className="form-group">
                                 <label>Discount Amount (₹)</label>
-                                <input
-                                    type="number"
-                                    value={formData.discountAmount}
-                                    onChange={(e) => setFormData({ ...formData, discountAmount: e.target.value })}
-                                />
+                                <input type="number" value={formData.discountAmount}
+                                    onChange={e => setFormData({ ...formData, discountAmount: e.target.value })} />
                             </div>
-                        </div>
-
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Coupon Used</label>
-                                <input
-                                    type="text"
-                                    value={formData.couponUsed}
-                                    onChange={(e) => setFormData({ ...formData, couponUsed: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Payer ID</label>
-                                <input
-                                    type="text"
-                                    value={formData.payerId}
-                                    onChange={(e) => setFormData({ ...formData, payerId: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Action</label>
-                            <select
-                                value={formData.action}
-                                onChange={(e) => setFormData({ ...formData, action: e.target.value })}
-                            >
-                                <option value="new">New Registration</option>
-                                <option value="renewal">Renewal</option>
-                                <option value="upgrade">Upgrade</option>
-                                <option value="edit">Edit</option>
-                            </select>
                         </div>
                     </div>
 
+                    {/* ── Study Preferences ── */}
                     <div className="form-section">
-                        <h3>
-                            <BookOpen size={18} /> Study Preferences
-                        </h3>
+                        <h3><BookOpen size={18} /> Study Preferences</h3>
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Daily Study Hours</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="24"
-                                    value={formData.comfortableDailyHours}
-                                    onChange={(e) => setFormData({ ...formData, comfortableDailyHours: parseInt(e.target.value) || 3 })}
-                                />
+                                <input type="number" min="1" max="24" value={formData.comfortableDailyHours}
+                                    onChange={e => setFormData({ ...formData, comfortableDailyHours: parseInt(e.target.value) || 4 })} />
                             </div>
                             <div className="form-group">
                                 <label>Proficiency Level</label>
-                                <select
-                                    value={formData.severity}
-                                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                                >
+                                <select value={formData.severity}
+                                    onChange={e => setFormData({ ...formData, severity: e.target.value })}>
                                     <option value="">Select Level</option>
-                                    <option value="Beginner">Beginner</option>
-                                    <option value="Competent">Competent</option>
-                                    <option value="Advanced">Advanced</option>
+                                    {severityOptions.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="cancel-btn" onClick={onClose}>
-                            Cancel
-                        </button>
+                        <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
                         <button type="submit" className="save-btn" disabled={loading}>
-                            {loading ? 'Saving...' : (
-                                <>
-                                    <Save size={16} /> {mode === 'edit' ? 'Update Student' : 'Add Student'}
-                                </>
-                            )}
+                            {loading ? 'Saving...' : (<><Save size={16} /> {mode === 'edit' ? 'Update Student' : 'Add Student'}</>)}
                         </button>
                     </div>
                 </form>

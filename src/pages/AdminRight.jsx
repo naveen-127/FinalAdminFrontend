@@ -214,7 +214,7 @@ const AdminRight = () => {
     tableEditable: false,
     showQuestionInput: false,
     showSolutionInput: false,
-    tags: [],
+    tags: [], // ✅ Make sure this is here
   };
 
   // Add this useEffect to detect return from AI page and refresh data
@@ -347,21 +347,37 @@ const AdminRight = () => {
     }
   }, [unitData]); // Add unitData as dependency
 
-  // Add this useEffect to keep them in sync
+
+    // Add this near your other useEffects
   useEffect(() => {
     // When editingQuestionIndex changes, update questionTags from currentQuestion
-    if (editingQuestionIndex !== null) {
-      setQuestionTags(currentQuestion.tags || []);
-    }
-  }, [editingQuestionIndex, currentQuestion.tags]);
+    if (editingQuestionIndex !== null && questions[editingQuestionIndex]) {
+      const question = questions[editingQuestionIndex];
+      const tags = question.tags || question.questionTags || [];
 
+      if (Array.isArray(tags) && tags.length > 0) {
+        setQuestionTags([...tags]);
+
+        // Also update currentQuestion if needed
+        setCurrentQuestion(prev => ({
+          ...prev,
+          tags: [...tags]
+        }));
+      }
+    }
+  }, [editingQuestionIndex]);
+
+  // Keep questionTags and currentQuestion.tags in sync
   useEffect(() => {
-    // When questionTags changes, update currentQuestion.tags
-    setCurrentQuestion(prev => ({
-      ...prev,
-      tags: questionTags
-    }));
+    // Only update if they're different to avoid loops
+    if (JSON.stringify(questionTags) !== JSON.stringify(currentQuestion.tags)) {
+      setCurrentQuestion(prev => ({
+        ...prev,
+        tags: questionTags.length > 0 ? [...questionTags] : []
+      }));
+    }
   }, [questionTags]);
+
 
   useEffect(() => {
     console.log("🔍 currentQuestion updated:", {
@@ -429,269 +445,269 @@ const AdminRight = () => {
   }, [lessonTestsMap]);
 
 
-const getAllData = () => {
-  return new Promise((resolve, reject) => {
-    const start = performance.now();
+  const getAllData = () => {
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
 
-    // List of subjects that don't require standard
-    const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
+      // List of subjects that don't require standard
+      const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
 
-    // Check if this is a special subject
-    const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
+      // Check if this is a special subject
+      const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
 
-    console.log("🔍 getAllData - Subject Analysis:", {
-      subjectName,
-      isSpecialSubject,
-      standard,
-      courseName
+      console.log("🔍 getAllData - Subject Analysis:", {
+        subjectName,
+        isSpecialSubject,
+        standard,
+        courseName
+      });
+
+      let apiUrl;
+      if (isSpecialSubject) {
+        // For special subjects: Don't send standard parameter
+        apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
+      } else {
+        // For normal subjects: Include standard
+        apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+      }
+
+      fetch(apiUrl, {
+        method: "GET",
+        credentials: "include",
+      })
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error(`HTTP error! status: ${resp.status}`);
+          }
+          return resp.json();
+        })
+        .then((data) => {
+          const end1 = performance.now();
+          console.log(`✅ Data fetched in ${end1 - start} ms`);
+
+          let processedData = data;
+
+          if (isSpecialSubject) {
+            console.log("🎯 Processing special subject data structure to match original subjects");
+
+            processedData = data.map(unit => ({
+              ...unit,
+              id: unit.id || unit._id,
+              isLesson: true, // Ensure isLesson is true for all special subject units
+              standard: "special",
+              units: unit.units || [],
+              test: unit.test || [],
+              imageUrls: unit.imageUrls || [],
+              audioFileId: unit.audioFileId || [],
+              tags: unit.tags || []
+            }));
+          } else {
+            // Ensure ID consistency for normal subjects too
+            processedData = data.map(unit => ({
+              ...unit,
+              id: unit.id || unit._id,
+              isLesson: true // Ensure isLesson is true for normal subjects too
+            }));
+          }
+
+          setUnitData(processedData);
+          resolve(processedData); // Resolve with the data
+        })
+        .catch((err) => {
+          console.error("❌ Session check failed:", err);
+          reject(err);
+        });
     });
+  };
 
-    let apiUrl;
-    if (isSpecialSubject) {
-      // For special subjects: Don't send standard parameter
-      apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
-    } else {
-      // For normal subjects: Include standard
-      apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+  // Move lesson up/down - Updated to handle both root and nested lessons
+  // Move lesson up/down - Updated for root-level units
+  const handleMoveLesson = async (lesson, direction) => {
+    if (!lesson || !lesson.id) {
+      alert("No lesson selected for moving");
+      return;
     }
 
-    fetch(apiUrl, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((resp) => {
-        if (!resp.ok) {
-          throw new Error(`HTTP error! status: ${resp.status}`);
-        }
-        return resp.json();
-      })
-      .then((data) => {
-        const end1 = performance.now();
-        console.log(`✅ Data fetched in ${end1 - start} ms`);
+    setIsMoving(true);
+    setMovingItem(lesson);
 
-        let processedData = data;
+    try {
+      // Check if this is a special subject
+      const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
+      const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
 
-        if (isSpecialSubject) {
-          console.log("🎯 Processing special subject data structure to match original subjects");
-
-          processedData = data.map(unit => ({
-            ...unit,
-            id: unit.id || unit._id,
-            isLesson: true, // Ensure isLesson is true for all special subject units
-            standard: "special",
-            units: unit.units || [],
-            test: unit.test || [],
-            imageUrls: unit.imageUrls || [],
-            audioFileId: unit.audioFileId || [],
-            tags: unit.tags || []
-          }));
-        } else {
-          // Ensure ID consistency for normal subjects too
-          processedData = data.map(unit => ({
-            ...unit,
-            id: unit.id || unit._id,
-            isLesson: true // Ensure isLesson is true for normal subjects too
-          }));
-        }
-
-        setUnitData(processedData);
-        resolve(processedData); // Resolve with the data
-      })
-      .catch((err) => {
-        console.error("❌ Session check failed:", err);
-        reject(err);
+      console.log("🎯 Moving lesson:", {
+        lessonId: lesson.id,
+        lessonName: lesson.unitName,
+        isSpecialSubject,
+        subjectName,
+        courseName
       });
-  });
-};
 
-// Move lesson up/down - Updated to handle both root and nested lessons
-// Move lesson up/down - Updated for root-level units
-const handleMoveLesson = async (lesson, direction) => {
-  if (!lesson || !lesson.id) {
-    alert("No lesson selected for moving");
-    return;
-  }
+      // Determine if this is a root-level unit
+      const isRootLevel = unitData.some(unit => unit.id === lesson.id);
 
-  setIsMoving(true);
-  setMovingItem(lesson);
+      console.log("📊 Lesson type:", isRootLevel ? "ROOT LEVEL" : "NESTED");
+      console.log("📊 All unit data:", unitData.map(u => ({
+        id: u.id,
+        name: u.unitName,
+        isRoot: true,
+        childCount: u.units?.length || 0
+      })));
 
-  try {
-    // Check if this is a special subject
-    const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
-    const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
-    
-    console.log("🎯 Moving lesson:", {
-      lessonId: lesson.id,
-      lessonName: lesson.unitName,
-      isSpecialSubject,
-      subjectName,
-      courseName
-    });
-    
-    // Determine if this is a root-level unit
-    const isRootLevel = unitData.some(unit => unit.id === lesson.id);
-    
-    console.log("📊 Lesson type:", isRootLevel ? "ROOT LEVEL" : "NESTED");
-    console.log("📊 All unit data:", unitData.map(u => ({
-      id: u.id,
-      name: u.unitName,
-      isRoot: true,
-      childCount: u.units?.length || 0
-    })));
-    
-    let moveData;
-    let url;
-    
-    if (isSpecialSubject) {
-      // For special subjects, use the special endpoint
-      url = `${API_BASE_URL}/moveSpecialSubjectLesson/${direction}`;
-      moveData = {
-        dbname: courseName,
-        subjectName: subjectName,
-        parentId: lesson.id,
-        rootId: lesson.id,
-        unitName: lesson.unitName,
-        explanation: lesson.explanation || "",
-        imageUrls: lesson.imageUrls || [],
-        audioFileId: lesson.audioFileId || [],
-        tags: lesson.tags || [],
-        aiVideoUrl: lesson.aiVideoUrl || "",
-        isSpecialSubject: true
-      };
-    } else {
-      if (isRootLevel) {
-        // This is a root-level unit - use the new root unit endpoint
-        console.log("📁 Moving root-level unit with new endpoint");
-        url = `${API_BASE_URL}/moveRootUnit/${direction}`;
-        moveData = {
-          dbname: courseName,
-          subjectName: subjectName,
-          unitId: lesson.id,
-          unitName: lesson.unitName,
-          standard: lesson.standard || standard
-        };
-      } else {
-        // This is a nested unit - find its parent
-        const parentInfo = findParentUnit(unitData, lesson.id);
-        
-        if (!parentInfo) {
-          console.error("❌ Could not find parent for nested lesson:", lesson);
-          alert("Could not find the parent unit for this lesson. Please refresh and try again.");
-          setIsMoving(false);
-          setMovingItem(null);
-          return;
-        }
-        
-        console.log("📁 Found parent:", parentInfo);
-        url = `${API_BASE_URL}/moveUnit/${direction}`;
+      let moveData;
+      let url;
+
+      if (isSpecialSubject) {
+        // For special subjects, use the special endpoint
+        url = `${API_BASE_URL}/moveSpecialSubjectLesson/${direction}`;
         moveData = {
           dbname: courseName,
           subjectName: subjectName,
           parentId: lesson.id,
-          rootId: parentInfo.rootId,
+          rootId: lesson.id,
           unitName: lesson.unitName,
           explanation: lesson.explanation || "",
           imageUrls: lesson.imageUrls || [],
           audioFileId: lesson.audioFileId || [],
           tags: lesson.tags || [],
           aiVideoUrl: lesson.aiVideoUrl || "",
-          standard: lesson.standard || standard
+          isSpecialSubject: true
         };
+      } else {
+        if (isRootLevel) {
+          // This is a root-level unit - use the new root unit endpoint
+          console.log("📁 Moving root-level unit with new endpoint");
+          url = `${API_BASE_URL}/moveRootUnit/${direction}`;
+          moveData = {
+            dbname: courseName,
+            subjectName: subjectName,
+            unitId: lesson.id,
+            unitName: lesson.unitName,
+            standard: lesson.standard || standard
+          };
+        } else {
+          // This is a nested unit - find its parent
+          const parentInfo = findParentUnit(unitData, lesson.id);
+
+          if (!parentInfo) {
+            console.error("❌ Could not find parent for nested lesson:", lesson);
+            alert("Could not find the parent unit for this lesson. Please refresh and try again.");
+            setIsMoving(false);
+            setMovingItem(null);
+            return;
+          }
+
+          console.log("📁 Found parent:", parentInfo);
+          url = `${API_BASE_URL}/moveUnit/${direction}`;
+          moveData = {
+            dbname: courseName,
+            subjectName: subjectName,
+            parentId: lesson.id,
+            rootId: parentInfo.rootId,
+            unitName: lesson.unitName,
+            explanation: lesson.explanation || "",
+            imageUrls: lesson.imageUrls || [],
+            audioFileId: lesson.audioFileId || [],
+            tags: lesson.tags || [],
+            aiVideoUrl: lesson.aiVideoUrl || "",
+            standard: lesson.standard || standard
+          };
+        }
       }
-    }
 
-    console.log("🔄 Moving lesson data:", JSON.stringify(moveData, null, 2));
-    console.log("📡 Using URL:", url);
+      console.log("🔄 Moving lesson data:", JSON.stringify(moveData, null, 2));
+      console.log("📡 Using URL:", url);
 
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(moveData)
-    });
-
-    const data = await response.json();
-    console.log("Move lesson response:", data);
-
-    if (data.status === "success") {
-      alert(`✅ Lesson moved ${direction} successfully`);
-      await getAllData();
-    } else {
-      alert(`Failed to move lesson: ${data.message || "Unknown error"}`);
-    }
-  } catch (error) {
-    console.error("Error moving lesson:", error);
-    alert("Error moving lesson. Please try again.");
-  } finally {
-    setIsMoving(false);
-    setMovingItem(null);
-  }
-};
-
-// Enhanced helper function to find parent unit
-const findParentUnit = (units, targetId, rootId = null) => {
-  for (const unit of units) {
-    // Check if this unit has the target in its direct children
-    if (unit.units && Array.isArray(unit.units)) {
-      // Log what we're checking for debugging
-      console.log(`🔍 Checking unit ${unit.unitName} (${unit.id}) for child ${targetId}`);
-      
-      const hasTarget = unit.units.some(child => {
-        const match = child.id === targetId;
-        if (match) console.log(`✅ Found target in unit ${unit.unitName}`);
-        return match;
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(moveData)
       });
-      
-      if (hasTarget) {
-        return {
-          parentUnit: unit,
-          parentId: unit.id,
-          rootId: unit.id  // For direct children, root is the parent
-        };
-      }
-    }
-    
-    // Check deeper nesting if this unit has children
-    if (unit.units && unit.units.length > 0) {
-      const found = findParentUnit(unit.units, targetId, unit.id);
-      if (found) {
-        return {
-          ...found,
-          rootId: unit.id // The root is the top-level unit
-        };
-      }
-    }
-  }
-  return null;
-};
 
-// Alternative search that looks at all levels
-const findAlternativeParent = (units, targetId) => {
-  // First, check if target is a root unit
-  const isRoot = units.some(u => u.id === targetId);
-  if (isRoot) {
-    return {
-      rootId: targetId,
-      parentId: targetId
-    };
-  }
-  
-  // Search through all nested units
-  const searchNested = (items, parentId = null) => {
-    for (const item of items) {
-      if (item.id === targetId) {
-        return { rootId: parentId || item.id, parentId: item.id };
+      const data = await response.json();
+      console.log("Move lesson response:", data);
+
+      if (data.status === "success") {
+        alert(`✅ Lesson moved ${direction} successfully`);
+        await getAllData();
+      } else {
+        alert(`Failed to move lesson: ${data.message || "Unknown error"}`);
       }
-      if (item.units && item.units.length > 0) {
-        const found = searchNested(item.units, parentId || item.id);
-        if (found) return found;
+    } catch (error) {
+      console.error("Error moving lesson:", error);
+      alert("Error moving lesson. Please try again.");
+    } finally {
+      setIsMoving(false);
+      setMovingItem(null);
+    }
+  };
+
+  // Enhanced helper function to find parent unit
+  const findParentUnit = (units, targetId, rootId = null) => {
+    for (const unit of units) {
+      // Check if this unit has the target in its direct children
+      if (unit.units && Array.isArray(unit.units)) {
+        // Log what we're checking for debugging
+        console.log(`🔍 Checking unit ${unit.unitName} (${unit.id}) for child ${targetId}`);
+
+        const hasTarget = unit.units.some(child => {
+          const match = child.id === targetId;
+          if (match) console.log(`✅ Found target in unit ${unit.unitName}`);
+          return match;
+        });
+
+        if (hasTarget) {
+          return {
+            parentUnit: unit,
+            parentId: unit.id,
+            rootId: unit.id  // For direct children, root is the parent
+          };
+        }
+      }
+
+      // Check deeper nesting if this unit has children
+      if (unit.units && unit.units.length > 0) {
+        const found = findParentUnit(unit.units, targetId, unit.id);
+        if (found) {
+          return {
+            ...found,
+            rootId: unit.id // The root is the top-level unit
+          };
+        }
       }
     }
     return null;
   };
-  
-  return searchNested(units);
-};
+
+  // Alternative search that looks at all levels
+  const findAlternativeParent = (units, targetId) => {
+    // First, check if target is a root unit
+    const isRoot = units.some(u => u.id === targetId);
+    if (isRoot) {
+      return {
+        rootId: targetId,
+        parentId: targetId
+      };
+    }
+
+    // Search through all nested units
+    const searchNested = (items, parentId = null) => {
+      for (const item of items) {
+        if (item.id === targetId) {
+          return { rootId: parentId || item.id, parentId: item.id };
+        }
+        if (item.units && item.units.length > 0) {
+          const found = searchNested(item.units, parentId || item.id);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    return searchNested(units);
+  };
   // Move subtopic up/down
   const handleMoveSubtopic = async (subUnit, direction) => {
     if (!subUnit || !subUnit.id) {
@@ -1380,31 +1396,52 @@ const findAlternativeParent = (units, targetId) => {
       return;
     }
 
-    // 🔥 DEBUG: Check what we're about to save
     console.log("💾 handleAddQuestion - Saving question with:");
-    console.log("  - Text:", currentQuestion.text?.substring(0, 50));
     console.log("  - Tags from currentQuestion:", currentQuestion.tags);
     console.log("  - Tags from questionTags state:", questionTags);
     console.log("  - Editing index:", editingQuestionIndex);
 
+    // Determine which tags to use - prioritize questionTags if available
+    const tagsToSave = questionTags.length > 0
+      ? [...questionTags]
+      : (currentQuestion.tags && currentQuestion.tags.length > 0
+        ? [...currentQuestion.tags]
+        : []);
+
     if (editingQuestionIndex !== null) {
       // Editing existing question
       const updatedQuestions = [...questions];
-      // ✅ CRITICAL FIX: Make sure we include ALL properties including tags
-      updatedQuestions[editingQuestionIndex] = {
+
+      // Create the updated question with ALL currentQuestion data
+      const updatedQuestion = {
         ...currentQuestion,
-        tags: questionTags, // Use tags from questionTags state
+        tags: tagsToSave,
       };
+
+      // Make sure options are properly formatted
+      updatedQuestion.options = currentQuestion.options.map((opt, idx) => {
+        const fieldName = `option${idx + 1}`;
+        const imageFieldName = `option${idx + 1}Image`;
+
+        // Preserve existing option formats
+        if (typeof opt === 'object') {
+          return opt;
+        }
+        return opt;
+      });
+
+      updatedQuestions[editingQuestionIndex] = updatedQuestion;
       setQuestions(updatedQuestions);
       setEditingQuestionIndex(null);
 
       console.log("✅ Updated question at index", editingQuestionIndex);
-      console.log("📦 Updated question data:", updatedQuestions[editingQuestionIndex]);
+      console.log("📦 Updated question data:", updatedQuestion);
+      console.log("📦 Tags saved:", updatedQuestion.tags);
     } else {
       // Adding new question
       const newQuestion = {
         ...currentQuestion,
-        tags: questionTags, // Use tags from questionTags state
+        tags: tagsToSave,
       };
       setQuestions([...questions, newQuestion]);
 
@@ -1424,25 +1461,33 @@ const findAlternativeParent = (units, targetId) => {
     const q = questions[index];
 
     console.log("📝 Editing question:", q);
-    console.log("🔖 Question tags:", q.tags); // Debug log
+    console.log("🔖 Question tags from question object:", q.tags);
 
-    setCurrentQuestion({
+    // Create a clean copy of the question data with ALL fields properly mapped
+    const questionData = {
       // 🔹 Question text and image
-      text: q.text || "",
+      text: q.text || q.question || "",
       questionImages: q.questionImages || [],
 
-      // 🔹 Options
-      options: Array.isArray(q.options)
-        ? q.options.map((opt) => ({
-          text: typeof opt === "string" ? opt : opt?.text || "",
-          image: typeof opt === "object" && opt?.image ? opt.image : null,
-        }))
-        : [
-          { text: "", image: null },
-          { text: "", image: null },
-          { text: "", image: null },
-          { text: "", image: null },
-        ],
+      // 🔹 Options - handle both string and object formats
+      options: [
+        {
+          text: q.option1 || (q.options?.[0]?.text) || "",
+          image: q.option1Image || (q.options?.[0]?.image) || null,
+        },
+        {
+          text: q.option2 || (q.options?.[1]?.text) || "",
+          image: q.option2Image || (q.options?.[1]?.image) || null,
+        },
+        {
+          text: q.option3 || (q.options?.[2]?.text) || "",
+          image: q.option3Image || (q.options?.[2]?.image) || null,
+        },
+        {
+          text: q.option4 || (q.options?.[3]?.text) || "",
+          image: q.option4Image || (q.options?.[3]?.image) || null,
+        },
+      ],
 
       // 🔹 Correct answer index
       correctIndex: typeof q.correctIndex === "number" ? q.correctIndex : 0,
@@ -1459,13 +1504,33 @@ const findAlternativeParent = (units, targetId) => {
       // 🔹 Matching / advanced question support
       showMatches: q.showMatches || false,
       tableEditable: q.tableEditable || false,
+      showQuestionInput: false,
+      showSolutionInput: false,
 
-      // 🔹 Question tags - MAKE SURE THIS IS INCLUDED
-      tags: q.tags || [], // This should be here
-    });
+      // 🔹 CRITICAL FIX: Ensure tags are properly copied
+      // Try multiple possible tag field locations
+      tags: (() => {
+        // Check all possible tag locations
+        if (Array.isArray(q.tags) && q.tags.length > 0) {
+          return [...q.tags];
+        }
+        if (Array.isArray(q.questionTags) && q.questionTags.length > 0) {
+          return [...q.questionTags];
+        }
+        if (Array.isArray(q.keywords) && q.keywords.length > 0) {
+          return [...q.keywords];
+        }
+        return [];
+      })(),
+    };
 
-    // Set question tags for editing
-    setQuestionTags(q.tags || []);
+    console.log("📦 Setting currentQuestion with tags:", questionData.tags);
+
+    // Set current question with the tags
+    setCurrentQuestion(questionData);
+
+    // CRITICAL: Set questionTags state for the tag input UI
+    setQuestionTags(questionData.tags.length > 0 ? [...questionData.tags] : []);
     setQuestionTagInput('');
 
     setEditingQuestionIndex(index);
