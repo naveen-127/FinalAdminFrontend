@@ -251,20 +251,21 @@ const AdminHome = () => {
     const selectedSubjectName = subjectsToShow[idx];
     console.log("Clicked subject:", selectedSubjectName);
 
+    // --- DIRECT EXTERNAL REDIRECT ---
     if (selectedSubjectName?.trim().toLowerCase() === 'derivation') {
-      // 1. Construct the URL using your config's ADMIN_LAB_URL
-      // 2. Pass returnUrl so admin.html knows how to get back
       const returnUrl = encodeURIComponent(window.location.origin);
       const card = encodeURIComponent(currentCardId);
       const currentMode = encodeURIComponent(mode);
 
+      // Building the URL for your Flask app at http://18.232.147.219:5000
       const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
       
-      // 3. Perform the redirect
+      console.log("Redirecting to Admin Lab:", labUrl);
       window.location.href = labUrl;
-      return;
+      return; // CRITICAL: Stop the function here
     }
 
+    // --- INTERNAL REACT NAVIGATION ---
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
 
