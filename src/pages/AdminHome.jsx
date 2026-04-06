@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiBook }                     from 'react-icons/fi';
-import { useNavigate, useLocation }   from 'react-router-dom';
+import { FiBook } from 'react-icons/fi';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './AdminHome.css';
-import { API_BASE_URL }               from '../config';
+import { API_BASE_URL } from '../config';
 
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },
@@ -251,9 +251,7 @@ const AdminHome = () => {
 
     // --- FIX: Redirect to the FULL URL of the Python Server ---
     if (selectedSubjectName === 'Derivation' && navigateToPage) {
-      // If your Flask server runs on port 5000, use this:
-      window.location.href = 'http://172.31.28.147:5000/admin-lab';
-      // If you are in production, use: window.location.href = '/admin-lab';
+      window.location.href = 'http://18.232.147.219:5000/admin-lab';
       return;
     }
 
