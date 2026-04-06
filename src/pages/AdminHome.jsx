@@ -243,24 +243,27 @@ const AdminHome = () => {
   };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-    const subjectsToShow = userRole === 'admin'
-      ? subjectsByCard[selectedCard.id] || []
-      : currSubjects;
+  const subjectsToShow = userRole === 'admin'
+    ? subjectsByCard[selectedCard.id] || []
+    : currSubjects;
 
-    const selectedSubjectName = subjectsToShow[idx];
+  const selectedSubjectName = subjectsToShow[idx];
 
-    // --- REDIRECT LOGIC FOR DERIVATION ---
-    if (selectedSubjectName === 'Derivation' && navigateToPage) {
-      const returnUrl = encodeURIComponent(window.location.origin);
-      const card = encodeURIComponent(selectedCard.id);
-      const currentMode = encodeURIComponent(mode);
+  // 1. Detect "Derivation" (Case-insensitive check is safer)
+  if (selectedSubjectName?.trim().toLowerCase() === 'derivation' && navigateToPage) {
+    const returnUrl = encodeURIComponent(window.location.origin);
+    const card = encodeURIComponent(selectedCard.id);
+    const currentMode = encodeURIComponent(mode);
 
-      // Redirects to the Flask route: http://18.232.147.219:5000/admin-lab
-      const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
-      
-      window.location.href = labUrl;
-      return; // Stop further React execution
-    }
+    // 2. Build the full URL for the Flask route
+    const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+    
+    // 3. Jump to the Flask Server
+    window.location.href = labUrl;
+    
+    // 4. CRITICAL: Stop React from running navigate('/adminright') below
+    return; 
+  }
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
