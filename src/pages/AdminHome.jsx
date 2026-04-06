@@ -243,14 +243,20 @@ const AdminHome = () => {
   };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-    // Determine which subject was clicked
     const subjectsToShow = userRole === 'admin'
       ? subjectsByCard[selectedCard.id] || []
       : currSubjects;
 
     const selectedSubjectName = subjectsToShow[idx];
 
-    // Logic: Only restrict if it's NOT a special subject AND it belongs to JEE/NEET/Board cards
+    // --- FIX: Redirect to the FULL URL of the Python Server ---
+    if (selectedSubjectName === 'Derivation' && navigateToPage) {
+      // If your Flask server runs on port 5000, use this:
+      window.location.href = 'http://172.31.28.147:5000';
+      // If you are in production, use: window.location.href = '/admin-lab';
+      return;
+    }
+
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
 
@@ -267,7 +273,6 @@ const AdminHome = () => {
         state: {
           cardId: currentCardId,
           subjectName: selectedSubjectName,
-          // If it's a special subject, pass "All" or "NA" if no standard is selected
           standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
           examTitle: selectedCard.title,
           examSubtitle: selectedCard.subtitle,
