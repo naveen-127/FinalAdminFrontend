@@ -3,6 +3,7 @@ import { FiBook } from 'react-icons/fi';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AdminHome.css';
 import { API_BASE_URL } from '../config';
+import { ADMIN_LAB_URL } from '../config';
 
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },
@@ -251,9 +252,10 @@ const AdminHome = () => {
     console.log("Clicked subject:", selectedSubjectName);
 
     if (selectedSubjectName?.trim().toLowerCase() === 'derivation') {
-      window.location.href = 'http://18.232.147.219:5000/admin-lab';
-      return;
-    }
+    // Open in new tab so users don't lose their place in your app
+    window.open(ADMIN_LAB_URL, '_blank');
+    return;
+  }
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
