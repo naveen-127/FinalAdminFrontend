@@ -252,7 +252,7 @@ const AdminHome = () => {
     // --- FIX: Redirect to the FULL URL of the Python Server ---
     if (selectedSubjectName === 'Derivation' && navigateToPage) {
       // If your Flask server runs on port 5000, use this:
-      window.location.href = 'http://172.31.28.147:5000';
+      window.location.href = 'http://172.31.28.147:5000/admin-lab';
       // If you are in production, use: window.location.href = '/admin-lab';
       return;
     }
