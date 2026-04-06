@@ -3,6 +3,7 @@ import { FiBook }                     from 'react-icons/fi';
 import { useNavigate, useLocation }   from 'react-router-dom';
 import './AdminHome.css';
 import { API_BASE_URL }               from '../config';
+import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
 
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },
@@ -243,24 +244,24 @@ const AdminHome = () => {
   };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-  const subjectsToShow = userRole === 'admin'
-    ? subjectsByCard[selectedCard.id] || []
-    : currSubjects;
+    const subjectsToShow = userRole === 'admin'
+      ? subjectsByCard[selectedCard.id] || []
+      : currSubjects;
 
-  const selectedSubjectName = subjectsToShow[idx];
+    const selectedSubjectName = subjectsToShow[idx];
 
-  // --- UPDATED DYNAMIC REDIRECT ---
-  if (selectedSubjectName === 'Derivation' && navigateToPage) {
-    const returnUrl = encodeURIComponent(window.location.origin);
-    const card = encodeURIComponent(currentCardId);
-    const currentMode = encodeURIComponent(mode);
+    // --- REDIRECT LOGIC FOR DERIVATION ---
+    if (selectedSubjectName === 'Derivation' && navigateToPage) {
+      const returnUrl = encodeURIComponent(window.location.origin);
+      const card = encodeURIComponent(selectedCard.id);
+      const currentMode = encodeURIComponent(mode);
 
-    // Uses ADMIN_LAB_URL from your config.js
-    const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
-    
-    window.location.href = labUrl;
-    return;
-  }
+      // Redirects to the Flask route: http://18.232.147.219:5000/admin-lab
+      const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+      
+      window.location.href = labUrl;
+      return; // Stop further React execution
+    }
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
