@@ -248,9 +248,9 @@ const AdminHome = () => {
       : currSubjects;
 
     const selectedSubjectName = subjectsToShow[idx];
+    console.log("Clicked subject:", selectedSubjectName);
 
-    // --- FIX: Redirect to the FULL URL of the Python Server ---
-    if (selectedSubjectName === 'Derivation' && navigateToPage) {
+    if (selectedSubjectName?.trim().toLowerCase() === 'derivation') {
       window.location.href = 'http://18.232.147.219:5000/admin-lab';
       return;
     }
