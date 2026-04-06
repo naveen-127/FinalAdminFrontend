@@ -252,12 +252,14 @@ const AdminHome = () => {
     console.log("Clicked subject:", selectedSubjectName);
 
     if (selectedSubjectName?.trim().toLowerCase() === 'derivation') {
-    console.log("ADMIN_LAB_URL:", ADMIN_LAB_URL); // Add this line
-    const labUrl = `${ADMIN_LAB_URL}?returnUrl=${encodeURIComponent(window.location.origin)}&card=${currentCardId}&mode=${mode}`;
-    console.log("Opening URL:", labUrl); // Add this line
-    window.open(labUrl, '_blank');
-    return;
-  }
+  console.log("ADMIN_LAB_URL:", ADMIN_LAB_URL);
+  const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${encodeURIComponent(window.location.origin)}&card=${currentCardId}&mode=${mode}`;
+  console.log("Opening URL:", labUrl);
+  
+  // Use same tab redirect (most reliable)
+  window.location.href = labUrl;
+  return;
+}
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
