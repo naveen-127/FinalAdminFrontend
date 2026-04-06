@@ -252,10 +252,10 @@ const AdminHome = () => {
     console.log("Clicked subject:", selectedSubjectName);
 
     if (selectedSubjectName?.trim().toLowerCase() === 'derivation') {
-    // Open in new tab so users don't lose their place in your app
-    window.open(ADMIN_LAB_URL, '_blank');
+    const labUrl = `${ADMIN_LAB_URL}?returnUrl=${encodeURIComponent(window.location.origin)}&card=${currentCardId}&mode=${mode}`;
+    window.open(labUrl, '_blank');
     return;
-  }
+}
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
