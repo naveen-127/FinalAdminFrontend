@@ -260,7 +260,7 @@ const AdminHome = () => {
       const card = encodeURIComponent(selectedCard.id);
       const currentMode = encodeURIComponent(mode);
 
-      const labUrl = `${ADMIN_LAB_URL}/admin.html?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+      const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
 
       sessionStorage.setItem('adminReturnState', JSON.stringify({
         cardId: selectedCard.id,
