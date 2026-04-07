@@ -243,27 +243,32 @@ const AdminHome = () => {
   };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-    const subjectsToShow = userRole === 'admin'
-      ? subjectsByCard[selectedCard.id] || []
-      : currSubjects;
+  const subjectsToShow = userRole === 'admin'
+    ? subjectsByCard[selectedCard.id] || []
+    : currSubjects;
 
-    const selectedSubjectName = subjectsToShow[idx];
+  const selectedSubjectName = subjectsToShow[idx];
 
-    // 1. Detect "Derivation" (Case-insensitive check is safer)
-    if (selectedSubjectName?.trim().toLowerCase() === 'derivation' && navigateToPage) {
-      const returnUrl = encodeURIComponent(window.location.origin);
-      const card = encodeURIComponent(selectedCard.id);
-      const currentMode = encodeURIComponent(mode);
+  // LOG THIS TO DEBUG: Check what the browser actually sees
+  console.log("Subject selected:", selectedSubjectName);
 
-      // This uses ADMIN_LAB_URL from your config/env
-      const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+  // Use a regex or trim/lowercase to ensure "Derivation " (with a space) or "derivation" matches
+  if (selectedSubjectName && /derivation/i.test(selectedSubjectName.trim()) && navigateToPage) {
+    const returnUrl = encodeURIComponent(window.location.origin);
+    const card = encodeURIComponent(selectedCard.id);
+    const currentMode = encodeURIComponent(mode);
 
-      sessionStorage.setItem('adminReturnState', JSON.stringify({ cardId: selectedCard.id, mode: mode }));
+    // Build the URL using the variable from config.js
+    const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+    
+    console.log("REDIRECTING TO EXTERNAL LAB:", labUrl);
+    
+    sessionStorage.setItem('adminReturnState', JSON.stringify({ cardId: selectedCard.id, mode: mode }));
 
-      // This triggers the external redirect
-      window.location.href = labUrl;
-      return;
-    }
+    // FORCE REDIRECT
+    window.location.assign(labUrl);
+    return; // STOP execution so navigate('/adminright') doesn't run
+  }
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
