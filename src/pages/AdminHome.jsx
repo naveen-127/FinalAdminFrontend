@@ -255,10 +255,13 @@ const AdminHome = () => {
     const card = encodeURIComponent(selectedCard.id);
     const currentMode = encodeURIComponent(mode);
 
-    // 2. Build the full URL for the Flask route
-    const labUrl = `${ADMIN_LAB_URL}/admin-lab?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+    // 2. Build the full URL for the server route.
+    const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
     
-    // 3. Jump to the Flask Server
+    // Save current state in the browser before leaving the React app
+    sessionStorage.setItem('adminReturnState', JSON.stringify({ cardId: selectedCard.id, mode: mode }));
+    
+    // 3. Jump to the External Server
     window.location.href = labUrl;
     
     // 4. CRITICAL: Stop React from running navigate('/adminright') below
