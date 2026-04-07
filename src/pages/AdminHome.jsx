@@ -254,7 +254,8 @@ const AdminHome = () => {
 
     // Use a regex or trim/lowercase to ensure "Derivation " (with a space) or "derivation" matches
     // In handleSelectSubject, replace the derivation redirect block with:
-    if (selectedSubjectName && /derivation/i.test(selectedSubjectName.trim()) && navigateToPage) {
+    // ✅ ONLY Derivation redirect
+    if (selectedSubjectName?.trim() === "Derivation") {
 
       const returnUrl = encodeURIComponent(window.location.origin);
       const card = encodeURIComponent(selectedCard.id);
@@ -267,9 +268,10 @@ const AdminHome = () => {
         mode: mode
       }));
 
-      window.open(labUrl, "_blank");   // IMPORTANT FIX
+      window.open(labUrl, "_blank");
       return;
     }
+
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
