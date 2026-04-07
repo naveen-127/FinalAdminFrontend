@@ -267,7 +267,7 @@ const AdminHome = () => {
         mode: mode
       }));
 
-      window.location.href = labUrl;
+      window.open(labUrl, "_blank");   // IMPORTANT FIX
       return;
     }
 
