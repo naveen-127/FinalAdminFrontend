@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiBook }                     from 'react-icons/fi';
-import { useNavigate, useLocation }   from 'react-router-dom';
+import { FiBook } from 'react-icons/fi';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './AdminHome.css';
 import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
 
@@ -243,30 +243,27 @@ const AdminHome = () => {
   };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-  const subjectsToShow = userRole === 'admin'
-    ? subjectsByCard[selectedCard.id] || []
-    : currSubjects;
+    const subjectsToShow = userRole === 'admin'
+      ? subjectsByCard[selectedCard.id] || []
+      : currSubjects;
 
-  const selectedSubjectName = subjectsToShow[idx];
+    const selectedSubjectName = subjectsToShow[idx];
 
-  // 1. Detect "Derivation" (Case-insensitive check is safer)
-  if (selectedSubjectName?.trim().toLowerCase() === 'derivation' && navigateToPage) {
-    const returnUrl = encodeURIComponent(window.location.origin);
-    const card = encodeURIComponent(selectedCard.id);
-    const currentMode = encodeURIComponent(mode);
+    // 1. Detect "Derivation" (Case-insensitive check is safer)
+    if (selectedSubjectName?.trim().toLowerCase() === 'derivation' && navigateToPage) {
+      const returnUrl = encodeURIComponent(window.location.origin);
+      const card = encodeURIComponent(selectedCard.id);
+      const currentMode = encodeURIComponent(mode);
 
-    // 2. Build the full URL for the server route.
-    const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
-    
-    // Save current state in the browser before leaving the React app
-    sessionStorage.setItem('adminReturnState', JSON.stringify({ cardId: selectedCard.id, mode: mode }));
-    
-    // 3. Jump to the External Server
-    window.location.href = labUrl;
-    
-    // 4. CRITICAL: Stop React from running navigate('/adminright') below
-    return; 
-  }
+      // This uses ADMIN_LAB_URL from your config/env
+      const labUrl = `${ADMIN_LAB_URL}/admin?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+
+      sessionStorage.setItem('adminReturnState', JSON.stringify({ cardId: selectedCard.id, mode: mode }));
+
+      // This triggers the external redirect
+      window.location.href = labUrl;
+      return;
+    }
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
