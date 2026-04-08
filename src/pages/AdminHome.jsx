@@ -254,30 +254,26 @@ const AdminHome = () => {
 
     // Use a regex or trim/lowercase to ensure "Derivation " (with a space) or "derivation" matches
     if (selectedSubjectName?.trim() === "Derivation") {
-    // Check if URL exists
-    if (!ADMIN_LAB_URL) {
-        alert("Lab URL set aagala macha! Check .env file.");
-        return;
-    }
+      const returnUrl = encodeURIComponent(window.location.origin);
+      const card = encodeURIComponent(selectedCard.id);
+      const currentMode = encodeURIComponent(mode);
 
-    const returnUrl = encodeURIComponent(window.location.origin);
-    const card = encodeURIComponent(selectedCard.id);
-    const currentMode = encodeURIComponent(mode);
+      // Ensure there's a slash between URL and admin.html
+      const base = ADMIN_LAB_URL.endsWith('/') ? ADMIN_LAB_URL : `${ADMIN_LAB_URL}/`;
 
-    // Path cleanup
-    const base = ADMIN_LAB_URL.endsWith('/') ? ADMIN_LAB_URL : `${ADMIN_LAB_URL}/`;
-    // Flask app root path-la dhaan admin.html irukku (app.py "/" route)
-    const labUrl = `${base}?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+      // CloudFront-la direct file path (admin.html) kudukradhu safe
+      const labUrl = `${base}?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
 
-    sessionStorage.setItem('adminReturnState', JSON.stringify({
+      console.log("Redirecting to:", labUrl); // Inspect (F12) panni URL-a check pannu macha
+
+      sessionStorage.setItem('adminReturnState', JSON.stringify({
         cardId: selectedCard.id,
         mode: mode
-    }));
+      }));
 
-    // window.open-ku badhula current tab-laye redirect pannu (Production-friendly)
-    window.location.href = labUrl;
-    return;
-}
+      window.location.href = labUrl;
+      return;
+    }
 
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
