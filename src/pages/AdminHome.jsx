@@ -262,7 +262,7 @@ const AdminHome = () => {
       const base = ADMIN_LAB_URL.endsWith('/') ? ADMIN_LAB_URL : `${ADMIN_LAB_URL}/`;
 
       // CloudFront-la direct file path (admin.html) kudukradhu safe
-      const labUrl = `${base}?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+      const labUrl = `${base}`;
 
       console.log("Redirecting to:", labUrl); // Inspect (F12) panni URL-a check pannu macha
 
