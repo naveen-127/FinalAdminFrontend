@@ -253,24 +253,31 @@ const AdminHome = () => {
     console.log("Subject selected:", selectedSubjectName);
 
     // Use a regex or trim/lowercase to ensure "Derivation " (with a space) or "derivation" matches
-    // In handleSelectSubject, replace the derivation redirect block with:
-    // ✅ ONLY Derivation redirect
     if (selectedSubjectName?.trim() === "Derivation") {
+    // Check if URL exists
+    if (!ADMIN_LAB_URL) {
+        alert("Lab URL set aagala macha! Check .env file.");
+        return;
+    }
 
-      const returnUrl = encodeURIComponent(window.location.origin);
-      const card = encodeURIComponent(selectedCard.id);
-      const currentMode = encodeURIComponent(mode);
+    const returnUrl = encodeURIComponent(window.location.origin);
+    const card = encodeURIComponent(selectedCard.id);
+    const currentMode = encodeURIComponent(mode);
 
-      const labUrl = `${ADMIN_LAB_URL}/?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+    // Path cleanup
+    const base = ADMIN_LAB_URL.endsWith('/') ? ADMIN_LAB_URL : `${ADMIN_LAB_URL}/`;
+    // Flask app root path-la dhaan admin.html irukku (app.py "/" route)
+    const labUrl = `${base}?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
 
-      sessionStorage.setItem('adminReturnState', JSON.stringify({
+    sessionStorage.setItem('adminReturnState', JSON.stringify({
         cardId: selectedCard.id,
         mode: mode
-      }));
+    }));
 
-      window.open(labUrl, "_blank");
-      return;
-    }
+    // window.open-ku badhula current tab-laye redirect pannu (Production-friendly)
+    window.location.href = labUrl;
+    return;
+}
 
 
     const isSpecial = isSpecialSubject(selectedSubjectName);
