@@ -14,7 +14,6 @@ const INDIA_STATES = [
     "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
 ];
 
-// Course config matching DB structure exactly
 const COURSE_CONFIG = {
     NEET: {
         coursetype: "NEET",
@@ -28,6 +27,14 @@ const COURSE_CONFIG = {
         standards: ["11th", "12th"],
         subjects: ["Physics", "Chemistry", "Maths"]
     },
+
+    "NEET&JEE": {  // Add this for combined display
+        coursetype: "NEET&JEE",
+        courseName: "NEET&JEE",
+        standards: ["11th", "12th"],
+        subjects: ["Physics", "Chemistry", "Botany", "Zoology", "Maths"]
+    },
+    
     "Class 6-12": {
         coursetype: "academics",
         courseName: "Class 6-12",
@@ -49,30 +56,48 @@ const COURSE_CONFIG = {
 };
 
 const planOptions = [
-    { value: 'trial', label: 'Trial', days: 10 },
-    { value: 'monthly', label: 'Monthly', days: 30 },
-    { value: 'quarterly', label: 'Quarterly', days: 90 },
+    { value: 'trial',      label: 'Trial',       days: 10  },
+    { value: 'monthly',    label: 'Monthly',     days: 30  },
+    { value: 'quarterly',  label: 'Quarterly',   days: 90  },
     { value: 'halfyearly', label: 'Half Yearly', days: 180 },
-    { value: 'yearly', label: 'Yearly', days: 365 }
+    { value: 'yearly',     label: 'Yearly',      days: 365 }
 ];
 
 const severityOptions = [
-     "Competent (70%)", "Proficient (80%)", "Expert (90%)"
+    "Competent (70%)", "Proficient (80%)", "Expert (90%)"
 ];
 
+const deriveCourseType = (keys) => {
+    if (!keys || keys.length === 0) return '';
+    // Join all selected course keys with '&' for coursetype
+    return keys.join('&');
+};
+
+const deriveCourseName = (keys) => {
+    if (!keys || keys.length === 0) return '';
+    // Join all selected course keys with '&' for courseName
+    return keys.join('&');
+};
+
+const buildSelectedCourse = (keys, standardsMap) => {
+    const obj = {};
+    keys.forEach(key => {
+        obj[key] = standardsMap[key] || COURSE_CONFIG[key]?.standards || [];
+    });
+    return obj;
+};
+
 const StudentForm = ({ student, onClose, onSave, mode }) => {
+    const [selectedCourseKeys, setSelectedCourseKeys] = useState(['NEET']);
+    const [standardsMap, setStandardsMap]             = useState({ NEET: ["11th", "12th"] });
+    const [subjectsMap,  setSubjectsMap]               = useState({ NEET: [] });
+
     const [formData, setFormData] = useState({
         firstname: '',
         lastname: '',
         email: '',
         password: '',
         mobile: '',
-        coursetype: 'NEET',
-        courseName: 'NEET',
-        standards: [],
-        subjects: [],
-        selectedCourse: { NEET: ["11th", "12th"] },
-        selectedStandard: ["11th", "12th"],
         dob: '',
         gender: '',
         city: '',
@@ -94,190 +119,243 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
     });
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error,   setError]   = useState('');
 
-    const selectedCourseKey = Object.keys(COURSE_CONFIG).find(
-        key => COURSE_CONFIG[key].courseName === formData.courseName
-    ) || 'NEET';
-    const currentCourseConfig = COURSE_CONFIG[selectedCourseKey];
-
-    // Load student data if editing
+    // ── Load student data when editing ──────────────────────────────────────
     useEffect(() => {
         if (mode === 'edit' && student) {
+            let keys    = [];
+            let stdMap  = {};
+            let subjMap = {};
+
+            // 1. Try new format: selectedCourse = { NEET: [...], JEE: [...] }
+            if (student.selectedCourse && typeof student.selectedCourse === 'object') {
+                const validKeys = Object.keys(student.selectedCourse).filter(k => COURSE_CONFIG[k]);
+                if (validKeys.length > 0) {
+                    keys = validKeys;
+                    validKeys.forEach(k => {
+                        stdMap[k]  = Array.isArray(student.selectedCourse[k])
+                            ? student.selectedCourse[k]
+                            : COURSE_CONFIG[k].standards;
+                        subjMap[k] = [];
+                    });
+                }
+            }
+
+            // 2. Fallback: parse "NEET&JEE" style courseName / coursetype
+            if (keys.length === 0 && student.courseName) {
+                const parts = student.courseName.split('&').map(s => s.trim()).filter(p => COURSE_CONFIG[p]);
+                if (parts.length > 0) {
+                    keys = parts;
+                    parts.forEach(p => {
+                        stdMap[p]  = student.selectedStandard?.length
+                            ? student.selectedStandard
+                            : COURSE_CONFIG[p].standards;
+                        subjMap[p] = [];
+                    });
+                }
+            }
+
+            // 3. Final fallback
+            if (keys.length === 0) {
+                keys    = ['NEET'];
+                stdMap  = { NEET: ["11th", "12th"] };
+                subjMap = { NEET: [] };
+            }
+
+            setSelectedCourseKeys(keys);
+            setStandardsMap(stdMap);
+            setSubjectsMap(subjMap);
+
             setFormData({
-                firstname: student.firstname || '',
-                lastname: student.lastname || '',
-                email: student.email || '',
-                password: student.password || '',
-                mobile: student.mobile || '',
-                coursetype: student.coursetype || 'NEET',
-                courseName: student.courseName || 'NEET',
-                standards: student.standards || [],
-                subjects: student.subjects || [],
-                selectedCourse: student.selectedCourse || {},
-                selectedStandard: student.selectedStandard || [],
-                dob: student.dob || '',
-                gender: student.gender || '',
-                city: student.city || '',
-                state: student.state || '',
-                plan: student.plan || 'monthly',
-                startDate: student.startDate || '',
-                endDate: student.endDate || '',
-                paymentId: student.paymentId || '',
-                paymentMethod: student.paymentMethod || '',
-                amountPaid: student.amountPaid || '',
-                payerId: student.payerId || '',
-                couponUsed: student.couponUsed || 'NONE',
-                discountPercentage: student.discountPercentage || '0',
-                discountAmount: student.discountAmount || '0',
+                firstname:             student.firstname            || '',
+                lastname:              student.lastname             || '',
+                email:                 student.email               || '',
+                password:              student.password            || '',
+                mobile:                student.mobile              || '',
+                dob:                   student.dob                 || '',
+                gender:                student.gender              || '',
+                city:                  student.city                || '',
+                state:                 student.state               || '',
+                plan:                  student.plan                || 'monthly',
+                startDate:             student.startDate           || '',
+                endDate:               student.endDate             || '',
+                paymentId:             student.paymentId           || '',
+                paymentMethod:         student.paymentMethod       || 'Razorpay',
+                amountPaid:            student.amountPaid          || '',
+                payerId:               student.payerId             || '',
+                couponUsed:            student.couponUsed          || 'NONE',
+                discountPercentage:    student.discountPercentage  || '0',
+                discountAmount:        student.discountAmount      || '0',
                 comfortableDailyHours: student.comfortableDailyHours || 4,
-                severity: student.severity || 'Competent (70%)',
-                paymentHistory: student.paymentHistory || [],
+                severity:              student.severity            || 'Competent (70%)',
+                paymentHistory:        student.paymentHistory      || [],
                 _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
             });
         }
     }, [student, mode]);
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
     const calculateEndDate = (startDate, plan) => {
         if (!startDate || !plan) return '';
-        const selectedPlan = planOptions.find(p => p.value === plan);
-        if (!selectedPlan) return '';
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + selectedPlan.days);
-        return date.toISOString().split('T')[0];
+        const found = planOptions.find(p => p.value === plan);
+        if (!found) return '';
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + found.days);
+        return d.toISOString().split('T')[0];
     };
 
-    const handleCourseChange = (courseKey) => {
-        const config = COURSE_CONFIG[courseKey];
-        if (!config) return;
-        // selectedCourse object: { "NEET": ["11th", "12th"] } — matches DB
-        const selectedCourse = { [config.courseName]: config.standards };
-        setFormData(prev => ({
-            ...prev,
-            coursetype: config.coursetype,
-            courseName: config.courseName,
-            standards: [],
-            subjects: [],
-            selectedCourse,
-            selectedStandard: config.standards // default all selected like DB
-        }));
+    const handleCourseKeyToggle = (key) => {
+        setSelectedCourseKeys(prev => {
+            if (prev.includes(key)) {
+                if (prev.length === 1) return prev;
+                const updated = prev.filter(k => k !== key);
+                setStandardsMap(sm => { const n = { ...sm }; delete n[key]; return n; });
+                setSubjectsMap(sj  => { const n = { ...sj };  delete n[key]; return n; });
+                return updated;
+            } else {
+                setStandardsMap(sm => ({ ...sm, [key]: COURSE_CONFIG[key].standards }));
+                setSubjectsMap(sj  => ({ ...sj,  [key]: [] }));
+                return [...prev, key];
+            }
+        });
     };
 
-    const handleStandardChange = (std) => {
-        const config = COURSE_CONFIG[selectedCourseKey];
-        setFormData(prev => {
-            const current = prev.selectedStandard || [];
-            const updated = current.includes(std)
-                ? current.filter(s => s !== std)
-                : [...current, std];
+    const handleStandardChange = (courseKey, std) => {
+        setStandardsMap(prev => {
+            const cur = prev[courseKey] || [];
             return {
                 ...prev,
-                selectedStandard: updated,
-                // Update selectedCourse object to reflect chosen standards
-                selectedCourse: { [config.courseName]: updated }
+                [courseKey]: cur.includes(std) ? cur.filter(s => s !== std) : [...cur, std]
             };
         });
     };
 
-    const handleSubjectChange = (subject) => {
-        setFormData(prev => {
-            const current = prev.subjects || [];
-            const updated = current.includes(subject)
-                ? current.filter(s => s !== subject)
-                : [...current, subject];
-            return { ...prev, subjects: updated };
+    const handleSubjectChange = (courseKey, subject) => {
+        setSubjectsMap(prev => {
+            const cur = prev[courseKey] || [];
+            return {
+                ...prev,
+                [courseKey]: cur.includes(subject) ? cur.filter(s => s !== subject) : [...cur, subject]
+            };
         });
     };
 
+    const allSelectedStandards = [...new Set(selectedCourseKeys.flatMap(k => standardsMap[k] || []))];
+    const previewCoursetype    = deriveCourseType(selectedCourseKeys);
+    const previewCourseName    = deriveCourseName(selectedCourseKeys);
+
+    // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            // Build payload matching DB structure exactly
-            const payload = {
-                firstname: formData.firstname,
-                lastname: formData.lastname,
-                email: formData.email,
-                password: formData.password,
-                mobile: formData.mobile,
-                coursetype: formData.coursetype,
-                courseName: formData.courseName,
-                standards: [],                          // DB shows empty array
-                subjects: [],                           // DB shows empty array
-                selectedCourse: formData.selectedCourse,
-                selectedStandard: formData.selectedStandard,
-                dob: formData.dob,
-                gender: formData.gender,
-                city: formData.city,
-                state: formData.state,
-                plan: formData.plan,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                paymentId: formData.paymentId || `PAY-${Date.now()}`,
-                paymentMethod: formData.paymentMethod,
-                amountPaid: formData.amountPaid,
-                payerId: formData.payerId || '',
-                comfortableDailyHours: formData.comfortableDailyHours,
-                severity: formData.severity,
-                paymentHistory: formData.paymentHistory,
-                _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
+            const selectedCourseObj  = buildSelectedCourse(selectedCourseKeys, standardsMap);
+            const combinedCoursetype = deriveCourseType(selectedCourseKeys);
+            const combinedCourseName = deriveCourseName(selectedCourseKeys);
+
+            const newHistoryEntry = {
+                date:               new Date().toISOString().split('T')[0],
+                amountPaid:         formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
+                paymentId:          formData.plan === 'trial'
+                                        ? `TRIAL_${Date.now()}`
+                                        : (formData.paymentId || `PAY-${Date.now()}`),
+                action:             formData.plan === 'trial' ? 'TRIAL_ACTIVATION' : 'UPGRADE/RENEWAL',
+                plan:               formData.plan,
+                discountPercentage: formData.discountPercentage || '0',
+                couponUsed:         formData.couponUsed         || 'NONE',
+                payerId:            formData.payerId            || '',
+                discountAmount:     formData.discountAmount     || '0'
             };
 
-            // Build paymentHistory entry for new payment (add/upgrade)
+            let updatedPaymentHistory;
             if (mode === 'add') {
-                const historyEntry = {
-                    date: new Date().toISOString().split('T')[0],
-                    amountPaid: formData.amountPaid || '0',
-                    paymentId: formData.plan === 'trial'
-                        ? `TRIAL_${Date.now()}`
-                        : (formData.paymentId || `PAY-${Date.now()}`),
-                    action: formData.plan === 'trial' ? 'TRIAL_ACTIVATION' : 'UPGRADE/RENEWAL',
-                    plan: formData.plan,
-                    ...(formData.plan !== 'trial' && {
-                        discountPercentage: formData.discountPercentage || '0',
-                        couponUsed: formData.couponUsed || 'NONE',
-                        payerId: formData.payerId || '',
-                        discountAmount: formData.discountAmount || '0'
-                    })
-                };
-                payload.paymentHistory = [historyEntry];
-                // For trial plan, sync paymentId
-                if (formData.plan === 'trial') {
-                    payload.paymentId = historyEntry.paymentId;
-                    payload.paymentMethod = 'Free Trial';
-                    payload.amountPaid = '0';
-                }
+                updatedPaymentHistory = [newHistoryEntry];
+            } else {
+                const paymentChanged =
+                    formData.amountPaid         !== (student.amountPaid         || '')    ||
+                    formData.plan               !== (student.plan               || '')    ||
+                    formData.startDate          !== (student.startDate          || '')    ||
+                    formData.endDate            !== (student.endDate            || '')    ||
+                    formData.paymentId          !== (student.paymentId          || '')    ||
+                    formData.paymentMethod      !== (student.paymentMethod      || '')    ||
+                    formData.discountPercentage !== (student.discountPercentage || '0')   ||
+                    formData.discountAmount     !== (student.discountAmount     || '0')   ||
+                    formData.couponUsed         !== (student.couponUsed         || 'NONE');
+
+                updatedPaymentHistory = paymentChanged
+                    ? [newHistoryEntry, ...(formData.paymentHistory || [])]
+                    : (formData.paymentHistory || []);
             }
+
+            const payload = {
+                firstname:  formData.firstname,
+                lastname:   formData.lastname,
+                email:      formData.email,
+                password:   formData.password,
+                mobile:     formData.mobile,
+
+                coursetype:       combinedCoursetype,
+                courseName:       combinedCourseName,
+                standards:        [],
+                subjects:         [],
+                selectedCourse:   selectedCourseObj,
+                selectedStandard: allSelectedStandards,
+
+                dob:    formData.dob,
+                gender: formData.gender,
+                city:   formData.city,
+                state:  formData.state,
+
+                plan:          formData.plan,
+                startDate:     formData.startDate,
+                endDate:       formData.endDate,
+                paymentId:     newHistoryEntry.paymentId,
+                paymentMethod: formData.plan === 'trial' ? 'Free Trial' : formData.paymentMethod,
+                amountPaid:    formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
+                payerId:       formData.payerId || '',
+
+                couponUsed:         formData.couponUsed         || 'NONE',
+                discountPercentage: formData.discountPercentage || '0',
+                discountAmount:     formData.discountAmount     || '0',
+
+                comfortableDailyHours: formData.comfortableDailyHours,
+                severity:              formData.severity,
+                paymentHistory:        updatedPaymentHistory,
+                _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
+            };
 
             const url = mode === 'edit'
                 ? `${API_BASE_URL}/updateStudent/${student.email}`
                 : `${API_BASE_URL}/addStudent`;
 
             const response = await fetch(url, {
-                method: mode === 'edit' ? 'PUT' : 'POST',
+                method:      mode === 'edit' ? 'PUT' : 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                headers:     { 'Content-Type': 'application/json' },
+                body:        JSON.stringify(payload)
             });
 
             const data = await response.json();
 
             if (data.status === 'pass' || data.status === 'success') {
+                // Call onSave first — ManageAccount will close the modal and
+                // then trigger a delayed refetch so the UI always shows fresh data.
                 onSave();
-                onClose();
             } else {
                 setError(data.message || 'Failed to save student');
+                setLoading(false);
             }
         } catch (err) {
             console.error('Error saving student:', err);
             setError('Error saving student. Please try again.');
-        } finally {
             setLoading(false);
         }
     };
 
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="student-form-modal">
             <div className="student-form-overlay" onClick={onClose}></div>
@@ -290,7 +368,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 <form onSubmit={handleSubmit} className="student-form">
                     {error && <div className="form-error">{error}</div>}
 
-                    {/* ── Personal Information ── */}
+                    {/* ── Personal Information ─────────────────────────── */}
                     <div className="form-section">
                         <h3><User size={18} /> Personal Information</h3>
 
@@ -325,6 +403,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                 <label><Lock size={14} /> Password *</label>
                                 <input type="password" value={formData.password}
                                     required={mode === 'add'}
+                                    placeholder={mode === 'edit' ? 'Leave unchanged if not updating' : ''}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })} />
                             </div>
                             <div className="form-group">
@@ -353,7 +432,6 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                         </div>
 
                         <div className="form-row">
-                            {/* ── State dropdown — all Indian states ── */}
                             <div className="form-group">
                                 <label>State</label>
                                 <select value={formData.state}
@@ -367,51 +445,83 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                         </div>
                     </div>
 
-                    {/* ── Course Information ── */}
+                    {/* ── Course Information ───────────────────────────── */}
                     <div className="form-section">
                         <h3><GraduationCap size={18} /> Course Information</h3>
 
+                        <div className="course-preview-bar">
+                            <span className="course-preview-label">Will save as:</span>
+                            <span className="course-preview-value">
+                                coursetype = <strong>"{previewCoursetype}"</strong>
+                                &nbsp;&nbsp;|&nbsp;&nbsp;
+                                courseName = <strong>"{previewCourseName}"</strong>
+                            </span>
+                        </div>
+
                         <div className="form-group">
-                            <label>Course *</label>
-                            <select value={selectedCourseKey}
-                                onChange={e => handleCourseChange(e.target.value)} required>
+                            <label>
+                                Select Course(s) *&nbsp;
+                                <small style={{ color: '#888' }}>(tap to toggle — select one or more)</small>
+                            </label>
+                            <div className="course-toggle-group">
                                 {Object.keys(COURSE_CONFIG).map(key => (
-                                    <option key={key} value={key}>{key}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Standards</label>
-                            <div className="checkbox-group">
-                                {currentCourseConfig.standards.map(std => (
-                                    <label key={std} className="checkbox-label">
-                                        <input type="checkbox"
-                                            checked={(formData.selectedStandard || []).includes(std)}
-                                            onChange={() => handleStandardChange(std)} />
-                                        {std}
-                                    </label>
-                                ))}
-                            </div>
-                            <small>selectedCourse saved as: {JSON.stringify(formData.selectedCourse)}</small>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Subjects</label>
-                            <div className="checkbox-group">
-                                {currentCourseConfig.subjects.map(subject => (
-                                    <label key={subject} className="checkbox-label">
-                                        <input type="checkbox"
-                                            checked={(formData.subjects || []).includes(subject)}
-                                            onChange={() => handleSubjectChange(subject)} />
-                                        {subject}
-                                    </label>
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        className={`course-toggle-btn ${selectedCourseKeys.includes(key) ? 'active' : ''}`}
+                                        onClick={() => handleCourseKeyToggle(key)}
+                                    >
+                                        {selectedCourseKeys.includes(key) ? '✓ ' : '+ '}
+                                        {key}
+                                    </button>
                                 ))}
                             </div>
                         </div>
+
+                        {selectedCourseKeys.map(courseKey => {
+                            const config = COURSE_CONFIG[courseKey];
+                            return (
+                                <div key={courseKey} className="course-block">
+                                    <div className="course-block-header">
+                                        <strong>{courseKey}</strong>
+                                        <span className="course-block-type">
+                                            {courseKey === 'NEET' || courseKey === 'JEE' ? 'Professional' : 'Academics'}
+                                        </span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Standards</label>
+                                        <div className="checkbox-group">
+                                            {config.standards.map(std => (
+                                                <label key={std} className="checkbox-label">
+                                                    <input type="checkbox"
+                                                        checked={(standardsMap[courseKey] || []).includes(std)}
+                                                        onChange={() => handleStandardChange(courseKey, std)} />
+                                                    {std}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Subjects</label>
+                                        <div className="checkbox-group">
+                                            {config.subjects.map(subject => (
+                                                <label key={subject} className="checkbox-label">
+                                                    <input type="checkbox"
+                                                        checked={(subjectsMap[courseKey] || []).includes(subject)}
+                                                        onChange={() => handleSubjectChange(courseKey, subject)} />
+                                                    {subject}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
 
-                    {/* ── Subscription & Payment ── */}
+                    {/* ── Subscription & Payment ───────────────────────── */}
                     <div className="form-section">
                         <h3><CreditCard size={18} /> Subscription & Payment</h3>
 
@@ -436,7 +546,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                 <input type="date" value={formData.startDate} required
                                     onChange={e => {
                                         const startDate = e.target.value;
-                                        const endDate = calculateEndDate(startDate, formData.plan);
+                                        const endDate   = calculateEndDate(startDate, formData.plan);
                                         setFormData({ ...formData, startDate, endDate });
                                     }} />
                             </div>
@@ -446,11 +556,13 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                             <div className="form-group">
                                 <label>End Date</label>
                                 <input type="date" value={formData.endDate} readOnly className="readonly-field" />
-                                <small>Auto-calculated</small>
+                                <small>Auto-calculated from plan + start date</small>
                             </div>
                             <div className="form-group">
                                 <label>Amount Paid (₹)</label>
                                 <input type="number" value={formData.amountPaid}
+                                    disabled={formData.plan === 'trial'}
+                                    placeholder={formData.plan === 'trial' ? '0 (free trial)' : ''}
                                     onChange={e => setFormData({ ...formData, amountPaid: e.target.value })} />
                             </div>
                         </div>
@@ -459,6 +571,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                             <div className="form-group">
                                 <label>Payment Method</label>
                                 <select value={formData.paymentMethod}
+                                    disabled={formData.plan === 'trial'}
                                     onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}>
                                     <option value="Razorpay">Razorpay</option>
                                     <option value="Free Trial">Free Trial</option>
@@ -470,7 +583,8 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                             <div className="form-group">
                                 <label>Payment ID</label>
                                 <input type="text" value={formData.paymentId}
-                                    placeholder="e.g. pay_SNtP9i5C2PS59J"
+                                    disabled={formData.plan === 'trial'}
+                                    placeholder={formData.plan === 'trial' ? 'Auto-generated' : 'e.g. pay_SNtP9i5C2PS59J'}
                                     onChange={e => setFormData({ ...formData, paymentId: e.target.value })} />
                             </div>
                         </div>
@@ -496,7 +610,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                     onChange={e => {
                                         const pct = e.target.value;
                                         const discountAmount = formData.amountPaid
-                                            ? ((formData.amountPaid * pct) / 100).toFixed(2)
+                                            ? ((parseFloat(formData.amountPaid) * parseFloat(pct)) / 100).toFixed(2)
                                             : '0';
                                         setFormData({ ...formData, discountPercentage: pct, discountAmount });
                                     }} />
@@ -507,9 +621,18 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                     onChange={e => setFormData({ ...formData, discountAmount: e.target.value })} />
                             </div>
                         </div>
+
+                        {mode === 'edit' && (
+                            <div className="payment-update-notice">
+                                <small>
+                                    ⚠ Changing any payment or subscription field will automatically
+                                    add a new entry to payment history.
+                                </small>
+                            </div>
+                        )}
                     </div>
 
-                    {/* ── Study Preferences ── */}
+                    {/* ── Study Preferences ───────────────────────────── */}
                     <div className="form-section">
                         <h3><BookOpen size={18} /> Study Preferences</h3>
                         <div className="form-row">
@@ -532,9 +655,14 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                     </div>
 
                     <div className="form-actions">
-                        <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="button" className="cancel-btn" onClick={onClose} disabled={loading}>
+                            Cancel
+                        </button>
                         <button type="submit" className="save-btn" disabled={loading}>
-                            {loading ? 'Saving...' : (<><Save size={16} /> {mode === 'edit' ? 'Update Student' : 'Add Student'}</>)}
+                            {loading
+                                ? 'Saving...'
+                                : <><Save size={16} /> {mode === 'edit' ? 'Update Student' : 'Add Student'}</>
+                            }
                         </button>
                     </div>
                 </form>

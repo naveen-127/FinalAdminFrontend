@@ -405,6 +405,64 @@
   }
 }
 
+/* ── Add these to your existing StudentForm.css ───────────────────────── */
+
+/* Course toggle pill buttons */
+.course-toggle-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.course-toggle-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 2px solid #ccc;
+    background: #f5f5f5;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.course-toggle-btn:hover {
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.course-toggle-btn.active {
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Per-course block */
+.course-block {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    background: #fafafa;
+}
+
+.course-block-header {
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: #333;
+}
+
+/* Payment update notice */
+.payment-update-notice {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fff8e1;
+    border-left: 3px solid #FF9800;
+    border-radius: 4px;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .student-form-container {

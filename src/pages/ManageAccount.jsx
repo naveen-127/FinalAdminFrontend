@@ -47,6 +47,71 @@ const getCardsForMode = (mode, isTeacher = false) => {
   return [];
 };
 
+// ── Helper: normalise a raw API student doc into the shape the UI expects ──
+const normaliseStudent = (student, index) => {
+  const endDate = student.endDate ? new Date(student.endDate) : null;
+  const now = new Date();
+  const daysRemaining = endDate
+    ? Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)))
+    : null;
+
+  let status = 'active';
+  if (student.plan === 'trial') {
+    status = 'trial';
+  } else if (daysRemaining === 0) {
+    status = 'expiring';
+  } else if (daysRemaining === null) {
+    status = 'inactive';
+  }
+
+  return {
+    id: student._id || student.id,
+    firstname: student.firstname || '',
+    lastname: student.lastname || '',
+    name: student.firstname
+      ? `${student.firstname} ${student.lastname || ''}`.trim()
+      : student.fullName || '',
+    email: student.email || '',
+    password: student.password || '',
+    mobile: student.mobile || student.phone || '',
+    phone: student.mobile || student.phone || '',
+    coursetype: student.coursetype || '',
+    courseName: student.courseName || '',
+    standards: student.standards || [],
+    subjects: student.subjects || [],
+    selectedCourse: student.selectedCourse || {},
+    selectedStandard: student.selectedStandard || [],
+    dob: student.dob || '',
+    gender: student.gender || '',
+    plan: student.plan || '',
+    startDate: student.startDate || '',
+    endDate: student.endDate || '',
+    daysRemaining,
+    status,
+    paymentId: student.paymentId || '',
+    paymentMethod: student.paymentMethod || '',
+    amountPaid: student.amountPaid || '',
+    payerId: student.payerId || '',
+    paymentHistory: student.paymentHistory || [],
+    couponUsed: student.couponUsed || 'NONE',
+    discountPercentage: student.discountPercentage || '0',
+    discountAmount: student.discountAmount || '0',
+    comfortableDailyHours: student.comfortableDailyHours || 3,
+    severity: student.severity || '',
+    city: student.city || '',
+    state: student.state || '',
+    photo: student.photo || '',
+    access: {
+      mode: student.coursetype || student.selectedCourse?.type || '',
+      cardId: student.courseName || student.selectedCourse?.name || '',
+      subjects: student.subjects || [],
+      standards: student.selectedStandard || student.standards || [],
+    },
+    _class: student._class || '',
+    displayIndex: index,
+  };
+};
+
 const ManageAccount = () => {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -56,21 +121,20 @@ const ManageAccount = () => {
   const [activeView, setActiveView] = useState('teachers');
   const [isEditingTeacher, setIsEditingTeacher] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null); // For detailed view
-  const [showStudentDetails, setShowStudentDetails] = useState(false); // Toggle detailed view
-  const [selectedSection, setSelectedSection] = useState(''); // To track People section
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showStudentDetails, setShowStudentDetails] = useState(false);
+  const [selectedSection, setSelectedSection] = useState('');
 
   const [showStudentForm, setShowStudentForm] = useState(false);
-  const [studentFormMode, setStudentFormMode] = useState('add'); // 'add' or 'edit'
+  const [studentFormMode, setStudentFormMode] = useState('add');
   const [editingStudent, setEditingStudent] = useState(null);
 
-  // Filter and search states
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     coursetype: '',
     plan: '',
     status: '',
-    gender: ''
+    gender: '',
   });
 
   const [teacherFormData, setTeacherFormData] = useState({
@@ -79,15 +143,106 @@ const ManageAccount = () => {
     email: '',
     password: '',
     role: 'teacher',
-    access: {
-      mode: '',
-      cardId: '',
-      subjects: [],
-      standards: [],
-    },
+    access: { mode: '', cardId: '', subjects: [], standards: [] },
   });
 
+  const [hasCheckedSession, setHasCheckedSession] = useState(false);
 
+  // ── Fetch all users (teachers + students) ───────────────────────────────
+  const getUsers = useCallback(() => {
+    console.log('=== getUsers() started ===');
+
+    fetch(`${API_BASE_URL}/getUsers`, { method: 'GET', credentials: 'include' })
+      .then((r) => r.json())
+      .then((teacherData) => {
+        return fetch(`${API_BASE_URL}/getAllStudents`, { method: 'GET', credentials: 'include' })
+          .then((r) => r.json())
+          .then((studentData) => {
+            // ── Teachers ──
+            const teacherAdminList = Array.isArray(teacherData)
+              ? teacherData
+                .filter((u) => u.role === 'teacher' || u.role === 'admin')
+                .map((u) => ({
+                  id: u._id || u.id,
+                  name: u.userName || '',
+                  phone: u.phoneNumber || '',
+                  email: u.gmail || '',
+                  password: u.password || '',
+                  role: u.role || 'user',
+                  access: {
+                    mode: u.coursetype || '',
+                    cardId: u.courseName || '',
+                    subjects: u.subjects || [],
+                    standards: u.standards || [],
+                  },
+                }))
+              : [];
+
+            // ── Students ──
+            let studentList = [];
+            if (Array.isArray(studentData)) {
+              studentList = studentData.map((s, i) => normaliseStudent(s, i));
+            } else if (studentData?.status === 'error') {
+              console.error('Error fetching students:', studentData.message);
+              alert('Error fetching students: ' + studentData.message);
+            }
+
+            setTeachers(teacherAdminList);
+
+            // Replace both lists with fresh data — triggers filter useEffect
+            setStudents(studentList);
+            setFilteredStudents(studentList); // reset immediately too
+          });
+      })
+      .catch((err) => {
+        console.error('Error fetching users:', err);
+        alert('Error loading user data. Please try again.');
+      });
+  }, []);
+
+  // ── Session check ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (hasCheckedSession) return;
+    const start = performance.now();
+    fetch(`${API_BASE_URL}/checkSession`, { method: 'GET', credentials: 'include' })
+      .then((r) => r.json())
+      .then((text) => {
+        console.log(`checkSession took ${performance.now() - start} ms`);
+        if (text.status === 'failed') {
+          localStorage.removeItem('currentUser');
+          navigate('/signin');
+        } else {
+          getUsers();
+        }
+        setHasCheckedSession(true);
+      })
+      .catch(() => { });
+  }, [navigate, hasCheckedSession, getUsers]);
+
+  // ── Filter / search ──────────────────────────────────────────────────────
+  useEffect(() => {
+    let result = [...students];
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.name.toLowerCase().includes(term) ||
+          s.email.toLowerCase().includes(term) ||
+          (s.phone || '').toLowerCase().includes(term) ||
+          (s.courseName || '').toLowerCase().includes(term)
+      );
+    }
+
+    if (filters.coursetype) result = result.filter((s) => s.coursetype === filters.coursetype);
+    if (filters.plan) result = result.filter((s) => s.plan === filters.plan);
+    if (filters.status) result = result.filter((s) => s.status === filters.status);
+    if (filters.gender) result = result.filter((s) => s.gender === filters.gender);
+
+    setFilteredStudents(result);
+  }, [searchTerm, filters, students]);
+
+  // ── Student form handlers ────────────────────────────────────────────────
   const handleAddStudent = () => {
     setStudentFormMode('add');
     setEditingStudent(null);
@@ -100,202 +255,22 @@ const ManageAccount = () => {
     setShowStudentForm(true);
   };
 
+  /**
+   * Called by StudentForm after a successful save.
+   * We close the modal first, then re-fetch with a short delay so the
+   * backend has time to commit before we GET the updated list.
+   */
   const handleStudentSaved = () => {
-    // Refresh the student list
-    getUsers();
     setShowStudentForm(false);
     setEditingStudent(null);
+
+    // Small delay ensures the backend write is fully committed before refetch
+    setTimeout(() => {
+      getUsers();
+    }, 400);
   };
 
-  const [hasCheckedSession, setHasCheckedSession] = useState(false);
-
-  useEffect(() => {
-    if (hasCheckedSession) return;
-
-    const start = performance.now();
-    fetch(`${API_BASE_URL}/checkSession`, {
-      method: "GET",
-      credentials: 'include'
-    }).then(resp => resp.json())
-      .then(text => {
-        const end = performance.now();
-        console.log(`Fetch for check session in manage user took ${end - start} ms`);
-
-        if (text.status === 'failed') {
-          localStorage.removeItem('currentUser');
-          navigate('/signin');
-        } else {
-          getUsers();
-        }
-        setHasCheckedSession(true);
-      }).catch(() => { });
-  }, [navigate, hasCheckedSession]);
-
-  const getUsers = useCallback(() => {
-    console.log('=== getUsers() started ===');
-
-    // Fetch teachers
-    fetch(`${API_BASE_URL}/getUsers`, {
-      method: "GET",
-      credentials: 'include'
-    })
-      .then(resp => resp.json())
-      .then(teacherData => {
-        console.log('Teacher data received:', teacherData);
-
-        // Fetch students
-        return fetch(`${API_BASE_URL}/getAllStudents`, {
-          method: "GET",
-          credentials: 'include'
-        })
-          .then(resp => resp.json())
-          .then(studentData => {
-            console.log('Student data received:', studentData);
-
-            // Process teacher data
-            const teacherAdminList = Array.isArray(teacherData) ? teacherData
-              .filter(user => user.role === 'teacher' || user.role === 'admin')
-              .map(user => ({
-                id: user._id || user.id,
-                name: user.userName || '',
-                phone: user.phoneNumber || '',
-                email: user.gmail || '',
-                password: user.password || '',
-                role: user.role || 'user',
-                access: {
-                  mode: user.coursetype || '',
-                  cardId: user.courseName || '',
-                  subjects: user.subjects || [],
-                  standards: user.standards || [],
-                }
-              })) : [];
-
-            // Process student data
-            let studentList = [];
-            if (Array.isArray(studentData)) {
-              studentList = studentData.map((student, index) => {
-                // Calculate days remaining
-                const endDate = student.endDate ? new Date(student.endDate) : null;
-                const now = new Date();
-                const daysRemaining = endDate ? Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))) : null;
-
-                // Determine status
-                let status = 'active';
-                if (student.plan === 'trial') {
-                  status = 'trial';
-                } else if (daysRemaining === 0) {
-                  status = 'expiring';
-                } else if (daysRemaining === null) {
-                  status = 'inactive';
-                }
-
-                return {
-                  // Basic info
-                  id: student._id || student.id,
-                  firstname: student.firstname || '',
-                  lastname: student.lastname || '',
-                  name: student.firstname ? `${student.firstname} ${student.lastname || ''}`.trim() : student.fullName || '',
-                  email: student.email || '',
-                  password: student.password || '',
-                  mobile: student.mobile || student.phone || '',
-                  phone: student.mobile || student.phone || '',
-
-                  // Course info
-                  coursetype: student.coursetype || '',
-                  courseName: student.courseName || '',
-                  standards: student.standards || [],
-                  subjects: student.subjects || [],
-                  selectedCourse: student.selectedCourse || {},
-                  selectedStandard: student.selectedStandard || [],
-
-                  // Personal info
-                  dob: student.dob || '',
-                  gender: student.gender || '',
-                  plan: student.plan || '',
-
-                  // Dates
-                  startDate: student.startDate || '',
-                  endDate: student.endDate || '',
-                  daysRemaining: daysRemaining,
-                  status: status,
-
-                  // Payment info
-                  paymentId: student.paymentId || '',
-                  paymentMethod: student.paymentMethod || '',
-                  amountPaid: student.amountPaid || '',
-                  payerId: student.payerId || '',
-                  paymentHistory: student.paymentHistory || [],
-
-                  // Study preferences
-                  comfortableDailyHours: student.comfortableDailyHours || 3,
-                  severity: student.severity || '',
-
-                  // Access info for compatibility
-                  access: {
-                    mode: student.coursetype || student.selectedCourse?.type || '',
-                    cardId: student.courseName || student.selectedCourse?.name || '',
-                    subjects: student.subjects || [],
-                    standards: student.selectedStandard || student.standards || [],
-                  },
-
-                  // Backend class info
-                  _class: student._class || '',
-
-                  // Display order
-                  displayIndex: index
-                };
-              });
-            } else if (studentData && studentData.status === 'error') {
-              console.error('Error fetching students:', studentData.message);
-              alert('Error fetching students: ' + studentData.message);
-            }
-
-            setTeachers(teacherAdminList);
-            setStudents(studentList);
-            setFilteredStudents(studentList);
-          });
-      })
-      .catch((error) => {
-        console.error('Error fetching users:', error);
-        alert('Error loading user data. Please try again.');
-      });
-  }, []);
-
-  // Apply filters and search
-  useEffect(() => {
-    let result = [...students];
-
-    // Apply search
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(student =>
-        student.name.toLowerCase().includes(term) ||
-        student.email.toLowerCase().includes(term) ||
-        student.phone?.toLowerCase().includes(term) ||
-        student.courseName?.toLowerCase().includes(term)
-      );
-    }
-
-    // Apply filters
-    if (filters.coursetype) {
-      result = result.filter(student => student.coursetype === filters.coursetype);
-    }
-
-    if (filters.plan) {
-      result = result.filter(student => student.plan === filters.plan);
-    }
-
-    if (filters.status) {
-      result = result.filter(student => student.status === filters.status);
-    }
-
-    if (filters.gender) {
-      result = result.filter(student => student.gender === filters.gender);
-    }
-
-    setFilteredStudents(result);
-  }, [searchTerm, filters, students]);
-
+  // ── Teacher form handlers ────────────────────────────────────────────────
   const handleTeacherCardChange = (e) => {
     const cardId = e.target.value;
     const defaultSubjs = teacherSubjectOptions[cardId] || [];
@@ -304,7 +279,8 @@ const ManageAccount = () => {
       access: {
         ...prev.access,
         cardId,
-        standards: cardId === 'class11' ? ['11'] : cardId === 'class12' ? ['12'] : ['11', '12'],
+        standards:
+          cardId === 'class11' ? ['11'] : cardId === 'class12' ? ['12'] : ['11', '12'],
         subjects: defaultSubjs,
       },
     }));
@@ -315,123 +291,7 @@ const ManageAccount = () => {
     const updated = current.includes(subject)
       ? current.filter((s) => s !== subject)
       : [...current, subject];
-
-    setTeacherFormData({
-      ...teacherFormData,
-      access: {
-        ...teacherFormData.access,
-        subjects: updated,
-      },
-    });
-  };
-
-  const handleTeacherSubmit = (e) => {
-    e.preventDefault();
-
-    if (!teacherFormData.name || !teacherFormData.email || !teacherFormData.password) {
-      alert("Please fill in all required fields");
-      return;
-    }
-
-    if (isEditingTeacher) {
-      const start = performance.now();
-      fetch(`${API_BASE_URL}/updateUser/${teachers[editIndex].email}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          databaseName: "users",
-          collectionName: "users",
-          user: {
-            userName: teacherFormData.name,
-            phoneNumber: teacherFormData.phone,
-            gmail: teacherFormData.email,
-            password: teacherFormData.password,
-            role: 'teacher',
-            coursetype: teacherFormData.access.mode,
-            courseName: teacherFormData.access.cardId,
-            standards: teacherFormData.access.standards || [],
-            subjects: teacherFormData.access.subjects || []
-          }
-        })
-      }).then(resp => resp.json())
-        .then((data) => {
-          const end = performance.now();
-          console.log(`Fetch for update teacher took ${end - start} ms`);
-
-          if (data.status === 'pass') {
-            alert("Teacher updated successfully!");
-            getUsers();
-            setIsEditingTeacher(false);
-            setEditIndex(null);
-            resetTeacherForm();
-          } else {
-            alert(data.message || "Failed to update teacher");
-          }
-        }).catch((err) => {
-          console.error("Error updating teacher:", err);
-          alert("Error updating teacher");
-        });
-    } else {
-      const start = performance.now();
-      fetch(`${API_BASE_URL}/newUser`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          databaseName: "users",
-          collectionName: "users",
-          user: {
-            userName: teacherFormData.name,
-            phoneNumber: teacherFormData.phone,
-            gmail: teacherFormData.email,
-            password: teacherFormData.password,
-            role: 'teacher',
-            coursetype: teacherFormData.access.mode,
-            courseName: teacherFormData.access.cardId,
-            standards: teacherFormData.access.standards || [],
-            subjects: teacherFormData.access.subjects || []
-          }
-        })
-      }).then(resp => resp.json())
-        .then(data => {
-          const end = performance.now();
-          console.log(`Fetch for adding teacher took ${end - start} ms`);
-
-          if (data.status === 'pass') {
-            alert("Teacher created successfully!");
-            getUsers();
-            resetTeacherForm();
-          } else if (data.status === 'failed') {
-            alert("Teacher with this email already exists!");
-          }
-        }).catch((err) => {
-          console.error("Error creating teacher:", err);
-          alert("Error creating teacher");
-        });
-    }
-  };
-
-  const resetTeacherForm = () => {
-    setTeacherFormData({
-      name: '',
-      phone: '',
-      email: '',
-      password: '',
-      role: 'teacher',
-      access: {
-        mode: '',
-        cardId: '',
-        subjects: [],
-        standards: [],
-      },
-    });
-    setIsEditingTeacher(false);
-    setEditIndex(null);
+    setTeacherFormData({ ...teacherFormData, access: { ...teacherFormData.access, subjects: updated } });
   };
 
   const handleTeacherStandardChange = (standard) => {
@@ -439,46 +299,94 @@ const ManageAccount = () => {
     const updated = current.includes(standard)
       ? current.filter((s) => s !== standard)
       : [...current, standard];
+    setTeacherFormData({ ...teacherFormData, access: { ...teacherFormData.access, standards: updated } });
+  };
 
+  const resetTeacherForm = () => {
     setTeacherFormData({
-      ...teacherFormData,
-      access: {
-        ...teacherFormData.access,
-        standards: updated,
-      },
+      name: '', phone: '', email: '', password: '', role: 'teacher',
+      access: { mode: '', cardId: '', subjects: [], standards: [] },
     });
+    setIsEditingTeacher(false);
+    setEditIndex(null);
+  };
+
+  const handleTeacherSubmit = (e) => {
+    e.preventDefault();
+    if (!teacherFormData.name || !teacherFormData.email || !teacherFormData.password) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const body = {
+      databaseName: 'users',
+      collectionName: 'users',
+      user: {
+        userName: teacherFormData.name,
+        phoneNumber: teacherFormData.phone,
+        gmail: teacherFormData.email,
+        password: teacherFormData.password,
+        role: 'teacher',
+        coursetype: teacherFormData.access.mode,
+        courseName: teacherFormData.access.cardId,
+        standards: teacherFormData.access.standards || [],
+        subjects: teacherFormData.access.subjects || [],
+      },
+    };
+
+    const url = isEditingTeacher
+      ? `${API_BASE_URL}/updateUser/${teachers[editIndex].email}`
+      : `${API_BASE_URL}/newUser`;
+    const method = isEditingTeacher ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'pass') {
+          alert(isEditingTeacher ? 'Teacher updated!' : 'Teacher created!');
+          getUsers();
+          resetTeacherForm();
+        } else if (data.status === 'failed') {
+          alert('Teacher with this email already exists!');
+        } else {
+          alert(data.message || 'Operation failed');
+        }
+      })
+      .catch((err) => {
+        console.error('Error saving teacher:', err);
+        alert('Error saving teacher');
+      });
   };
 
   const handleDelete = (index, isTeacher = false) => {
-    if (!isTeacher) return; // Only allow teacher deletion
-
+    if (!isTeacher) return;
     const userToDelete = teachers[index];
-    if (!confirm(`Are you sure you want to delete teacher: ${userToDelete.name}?`)) return;
+    if (!confirm(`Delete teacher: ${userToDelete.name}?`)) return;
 
     fetch(`${API_BASE_URL}/deleteUser/${userToDelete.email}`, {
-      method: "DELETE",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        databaseName: "users",
-        collectionName: "users"
-      })
-    }).then(resp => resp.json())
-      .then(data => {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ databaseName: 'users', collectionName: 'users' }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
         if (data.status === 'pass') {
-          alert("Teacher deleted successfully!");
+          alert('Teacher deleted!');
           getUsers();
-          if (isEditingTeacher && editIndex === index) {
-            resetTeacherForm();
-          }
+          if (isEditingTeacher && editIndex === index) resetTeacherForm();
         } else {
-          alert(data.message || "Failed to delete teacher");
+          alert(data.message || 'Failed to delete teacher');
         }
-      }).catch(err => {
-        console.error("Error deleting teacher:", err);
-        alert("Error deleting teacher");
+      })
+      .catch((err) => {
+        console.error('Error deleting teacher:', err);
+        alert('Error deleting teacher');
       });
   };
 
@@ -488,14 +396,15 @@ const ManageAccount = () => {
     setTeacherFormData({ ...teachers[index] });
     setActiveView('teachers');
     setShowSupport(false);
-    setSelectedSection(''); // Clear People section when editing teacher
+    setSelectedSection('');
   };
 
+  // ── Student detail view ──────────────────────────────────────────────────
   const handleViewStudent = (student) => {
     setSelectedStudent(student);
     setShowStudentDetails(true);
     setShowSupport(false);
-    setSelectedSection(''); // Clear People section when viewing student
+    setSelectedSection('');
   };
 
   const handleBackToList = () => {
@@ -503,56 +412,36 @@ const ManageAccount = () => {
     setSelectedStudent(null);
   };
 
+  // ── Export ───────────────────────────────────────────────────────────────
   const handleExportStudents = () => {
-    const headers = ['ID', 'Name', 'Email', 'Phone', 'Course Type', 'Plan', 'Status', 'Start Date', 'End Date', 'Days Remaining', 'Gender', 'Subjects'];
-    const csvData = filteredStudents.map(student => [
-      student.id,
-      student.name,
-      student.email,
-      student.phone,
-      student.coursetype,
-      student.plan,
-      student.status,
-      formatDate(student.startDate),
-      formatDate(student.endDate),
-      student.daysRemaining,
-      student.gender,
-      student.subjects?.join(', ')
+    const headers = [
+      'ID', 'Name', 'Email', 'Phone', 'Course Type',
+      'Plan', 'Status', 'Start Date', 'End Date', 'Days Remaining', 'Gender', 'Subjects',
+    ];
+    const csvData = filteredStudents.map((s) => [
+      s.id, s.name, s.email, s.phone, s.coursetype,
+      s.plan, s.status,
+      formatDate(s.startDate), formatDate(s.endDate),
+      s.daysRemaining, s.gender, (s.subjects || []).join(', '),
     ]);
-
     const csvContent = [
       headers.join(','),
-      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
+    link.setAttribute('href', URL.createObjectURL(blob));
     link.setAttribute('download', `students_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString('en-IN');
-  };
-
-  const toggleSupportView = () => {
-    setShowSupport(!showSupport);
-    setSelectedSection(showSupport ? '' : 'support');
-    setActiveView('');
-    setShowStudentDetails(false);
-  };
-
-  // Add this function to toggle People view
-  const togglePeopleView = () => {
-    setSelectedSection(selectedSection === 'people' ? '' : 'people');
-    setShowSupport(false);
-    setActiveView('');
-    setShowStudentDetails(false);
   };
 
   const getStatusColor = (status) => {
@@ -574,17 +463,26 @@ const ManageAccount = () => {
     }
   };
 
-  // Reset filters
   const resetFilters = () => {
-    setFilters({
-      coursetype: '',
-      plan: '',
-      status: '',
-      gender: ''
-    });
+    setFilters({ coursetype: '', plan: '', status: '', gender: '' });
     setSearchTerm('');
   };
 
+  const toggleSupportView = () => {
+    setShowSupport(!showSupport);
+    setSelectedSection(showSupport ? '' : 'support');
+    setActiveView('');
+    setShowStudentDetails(false);
+  };
+
+  const togglePeopleView = () => {
+    setSelectedSection(selectedSection === 'people' ? '' : 'people');
+    setShowSupport(false);
+    setActiveView('');
+    setShowStudentDetails(false);
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="manage-account-container">
       <div className="sidebar">
@@ -595,7 +493,7 @@ const ManageAccount = () => {
             setActiveView('teachers');
             setShowSupport(false);
             setShowStudentDetails(false);
-            setSelectedSection(''); // Clear People section
+            setSelectedSection('');
           }}
         >
           Manage Teachers
@@ -606,7 +504,7 @@ const ManageAccount = () => {
             setActiveView('students');
             setShowSupport(false);
             setShowStudentDetails(false);
-            setSelectedSection(''); // Clear People section
+            setSelectedSection('');
           }}
         >
           Manage Students
@@ -651,10 +549,9 @@ const ManageAccount = () => {
           />
         ) : (
           <div className="manage-container">
-            <h2>
-              {activeView === 'teachers' ? 'Manage Teachers' : 'Manage Students'}
-            </h2>
+            <h2>{activeView === 'teachers' ? 'Manage Teachers' : 'Manage Students'}</h2>
 
+            {/* ── Teacher form ── */}
             {activeView === 'teachers' ? (
               <form className="user-form" onSubmit={handleTeacherSubmit}>
                 <input
@@ -694,13 +591,7 @@ const ManageAccount = () => {
                       const mode = e.target.value;
                       setTeacherFormData((prev) => ({
                         ...prev,
-                        access: {
-                          ...prev.access,
-                          mode,
-                          cardId: '',
-                          subjects: [],
-                          standards: [],
-                        },
+                        access: { ...prev.access, mode, cardId: '', subjects: [], standards: [] },
                       }));
                     }}
                   >
@@ -717,9 +608,7 @@ const ManageAccount = () => {
                   >
                     <option value="">-- Select --</option>
                     {getCardsForMode(teacherFormData.access.mode, true).map((card) => (
-                      <option key={card.value} value={card.value}>
-                        {card.label}
-                      </option>
+                      <option key={card.value} value={card.value}>{card.label}</option>
                     ))}
                   </select>
 
@@ -727,18 +616,21 @@ const ManageAccount = () => {
                     <>
                       <label>Standards:</label>
                       <div className="checkbox-group">
-                        {(teacherFormData.access.cardId === 'class11' ? ['11'] :
-                          teacherFormData.access.cardId === 'class12' ? ['12'] :
-                            ['11', '12']).map((std) => (
-                              <label key={std}>
-                                <input
-                                  type="checkbox"
-                                  checked={teacherFormData.access.standards.includes(std)}
-                                  onChange={() => handleTeacherStandardChange(std)}
-                                />
-                                Std {std}
-                              </label>
-                            ))}
+                        {(teacherFormData.access.cardId === 'class11'
+                          ? ['11']
+                          : teacherFormData.access.cardId === 'class12'
+                            ? ['12']
+                            : ['11', '12']
+                        ).map((std) => (
+                          <label key={std}>
+                            <input
+                              type="checkbox"
+                              checked={teacherFormData.access.standards.includes(std)}
+                              onChange={() => handleTeacherStandardChange(std)}
+                            />
+                            Std {std}
+                          </label>
+                        ))}
                       </div>
 
                       <label>Subjects:</label>
@@ -768,8 +660,9 @@ const ManageAccount = () => {
                 )}
               </form>
             ) : (
+              /* ── Student management panel ── */
               <div className="student-management-panel">
-                {/* Search and Filter Bar */}
+                {/* Search & Filter */}
                 <div className="search-filter-bar">
                   <div className="search-box">
                     <Search size={20} />
@@ -780,9 +673,7 @@ const ManageAccount = () => {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     {searchTerm && (
-                      <button className="clear-search" onClick={() => setSearchTerm('')}>
-                        ×
-                      </button>
+                      <button className="clear-search" onClick={() => setSearchTerm('')}>×</button>
                     )}
                   </div>
 
@@ -798,7 +689,6 @@ const ManageAccount = () => {
                         <option value="professional">Professional</option>
                       </select>
                     </div>
-
                     <div className="filter-group">
                       <label>Plan</label>
                       <select
@@ -807,11 +697,12 @@ const ManageAccount = () => {
                       >
                         <option value="">All Plans</option>
                         <option value="trial">Trial</option>
-                        <option value="basic">Basic</option>
-                        <option value="premium">Premium</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="halfyearly">Half Yearly</option>
+                        <option value="yearly">Yearly</option>
                       </select>
                     </div>
-
                     <div className="filter-group">
                       <label>Status</label>
                       <select
@@ -825,7 +716,6 @@ const ManageAccount = () => {
                         <option value="inactive">Inactive</option>
                       </select>
                     </div>
-
                     <div className="filter-group">
                       <label>Gender</label>
                       <select
@@ -838,51 +728,48 @@ const ManageAccount = () => {
                         <option value="other">Other</option>
                       </select>
                     </div>
-
-                    <button className="reset-filters-btn" onClick={resetFilters}>
-                      Reset Filters
-                    </button>
-
+                    <button className="reset-filters-btn" onClick={resetFilters}>Reset Filters</button>
                     <button className="export-btn" onClick={handleExportStudents}>
                       <Download size={16} /> Export CSV
                     </button>
                   </div>
                 </div>
 
+                {/* Add Student */}
                 <div className="add-student-section">
                   <button className="add-student-btn" onClick={handleAddStudent}>
                     <User size={18} /> Add New Student
                   </button>
                 </div>
 
-                {/* Statistics */}
+                {/* Stats */}
                 <div className="student-stats">
                   <div className="stat-card">
                     <span className="stat-number">{students.length}</span>
                     <span className="stat-label">Total Students</span>
                   </div>
                   <div className="stat-card">
-                    <span className="stat-number">{students.filter(s => s.status === 'active').length}</span>
+                    <span className="stat-number">{students.filter((s) => s.status === 'active').length}</span>
                     <span className="stat-label">Active</span>
                   </div>
                   <div className="stat-card">
-                    <span className="stat-number">{students.filter(s => s.plan === 'trial').length}</span>
+                    <span className="stat-number">{students.filter((s) => s.plan === 'trial').length}</span>
                     <span className="stat-label">Trial</span>
                   </div>
                   <div className="stat-card">
-                    <span className="stat-number">{students.filter(s => s.status === 'expiring').length}</span>
+                    <span className="stat-number">{students.filter((s) => s.status === 'expiring').length}</span>
                     <span className="stat-label">Expiring</span>
                   </div>
                 </div>
 
-                {/* Student List */}
+                {/* Student table */}
                 <div className="student-list-container">
                   <div className="list-header">
                     <h3>
                       Students ({filteredStudents.length})
                       <span className="search-summary">
                         {searchTerm && ` matching "${searchTerm}"`}
-                        {Object.values(filters).some(f => f) && ' with filters applied'}
+                        {Object.values(filters).some((f) => f) && ' with filters applied'}
                       </span>
                     </h3>
                   </div>
@@ -892,11 +779,11 @@ const ManageAccount = () => {
                       <div className="empty-icon">👨‍🎓</div>
                       <h4>No Students Found</h4>
                       <p>
-                        {searchTerm || Object.values(filters).some(f => f)
+                        {searchTerm || Object.values(filters).some((f) => f)
                           ? 'No students match your search criteria. Try different filters.'
                           : 'No students found in the database.'}
                       </p>
-                      {(searchTerm || Object.values(filters).some(f => f)) && (
+                      {(searchTerm || Object.values(filters).some((f) => f)) && (
                         <button onClick={resetFilters} className="reset-filters-btn">
                           Clear Search & Filters
                         </button>
@@ -923,7 +810,9 @@ const ManageAccount = () => {
                                 <div className="student-info">
                                   <div className="student-details">
                                     <div className="student-name">{student.name}</div>
-                                    <div className="student-id">ID: {student.id?.substring(0, 8)}...</div>
+                                    <div className="student-id">
+                                      ID: {student.id?.substring(0, 8)}...
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -946,12 +835,11 @@ const ManageAccount = () => {
                                 </div>
                               </td>
                               <td>
-                                <span
-                                  className="plan-badge"
-                                  style={{ backgroundColor: getPlanColor(student.plan) }}
-                                >
-                                  {student.plan || 'N/A'}
-                                </span>
+                                <td>
+                                  <span className={`plan-badge plan-${student.plan?.toLowerCase() || 'default'}`}>
+                                    {student.plan || 'N/A'}
+                                  </span>
+                                </td>
                               </td>
                               <td>
                                 <span
@@ -1003,10 +891,10 @@ const ManageAccount = () => {
               </div>
             )}
 
+            {/* Teacher list */}
             {activeView === 'teachers' && (
               <div className="user-list">
                 <h3>Existing Teachers</h3>
-
                 {teachers.length === 0 ? (
                   <div className="empty-state">
                     <p>No teachers found. Create your first teacher using the form above.</p>
@@ -1018,19 +906,15 @@ const ManageAccount = () => {
                         <strong>{item.name}</strong> ({item.email})<br />
                         📞 {item.phone}<br />
                         🛡 <span className="role-badge">{item.role}</span><br />
-
                         {item.access.mode && (
                           <div className="access-summary">
                             Mode: {item.access.mode}, Course: {item.access.cardId},{' '}
-                            Subjects: {item.access.subjects.join(', ')}, Standards: {item.access.standards.join(',')}
+                            Subjects: {item.access.subjects.join(', ')}, Standards:{' '}
+                            {item.access.standards.join(',')}
                           </div>
                         )}
-                        <button onClick={() => handleEditTeacher(idx)}>
-                          Edit
-                        </button>
-                        <button onClick={() => handleDelete(idx, true)}>
-                          Delete
-                        </button>
+                        <button onClick={() => handleEditTeacher(idx)}>Edit</button>
+                        <button onClick={() => handleDelete(idx, true)}>Delete</button>
                       </li>
                     ))}
                   </ul>
@@ -1040,10 +924,15 @@ const ManageAccount = () => {
           </div>
         )}
       </div>
+
+      {/* Student form modal */}
       {showStudentForm && (
         <StudentForm
           student={editingStudent}
-          onClose={() => setShowStudentForm(false)}
+          onClose={() => {
+            setShowStudentForm(false);
+            setEditingStudent(null);
+          }}
           onSave={handleStudentSaved}
           mode={studentFormMode}
         />

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { FiBook } from 'react-icons/fi';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect }  from 'react';
+import { FiBook }                      from 'react-icons/fi';
+import { useNavigate, useLocation }    from 'react-router-dom';
 import './AdminHome.css';
 import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
 
@@ -232,84 +232,84 @@ const AdminHome = () => {
   };
 
   const isSpecialSubject = (subjectName) => {
-  const specials = [
-    'NEET Previous Questions',
-    'Formulas',
-    'JEE Previous Questions',
-    'Previous Questions',
-    'Derivation' // Keep this
-  ];
-  // Also handle case-insensitive matching
-  return specials.some(special => 
-    special.toLowerCase() === subjectName?.trim().toLowerCase()
-  );
-};
+    const specials = [
+      'NEET Previous Questions',
+      'Formulas',
+      'JEE Previous Questions',
+      'Previous Questions',
+      'Derivation' // Keep this
+    ];
+    // Also handle case-insensitive matching
+    return specials.some(special =>
+      special.toLowerCase() === subjectName?.trim().toLowerCase()
+    );
+  };
 
   const handleSelectSubject = (idx, navigateToPage = false) => {
-  const subjectsToShow = userRole === 'admin'
-    ? subjectsByCard[selectedCard.id] || []
-    : currSubjects;
+    const subjectsToShow = userRole === 'admin'
+      ? subjectsByCard[selectedCard.id] || []
+      : currSubjects;
 
-  const selectedSubjectName = subjectsToShow[idx];
+    const selectedSubjectName = subjectsToShow[idx];
 
-  console.log("Subject selected:", selectedSubjectName);
+    console.log("Subject selected:", selectedSubjectName);
 
-  // FIX: Use exact string comparison and trim both sides
-  if (selectedSubjectName?.trim().toLowerCase() === "derivation") {
-    // Build the lab URL properly
-    let labUrl = ADMIN_LAB_URL;
-    
-    // Remove trailing slash if present
-    if (labUrl.endsWith('/')) {
-      labUrl = labUrl.slice(0, -1);
+    // FIX: Use exact string comparison and trim both sides
+    if (selectedSubjectName?.trim().toLowerCase() === "derivation") {
+      // Build the lab URL properly
+      let labUrl = ADMIN_LAB_URL;
+
+      // Remove trailing slash if present
+      if (labUrl.endsWith('/')) {
+        labUrl = labUrl.slice(0, -1);
+      }
+
+      // Add return parameters
+      const returnUrl = encodeURIComponent(window.location.origin);
+      const card = encodeURIComponent(selectedCard.id);
+      const currentMode = encodeURIComponent(mode);
+
+      // Create the complete URL with query parameters
+      const finalUrl = `${labUrl}/?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
+
+      console.log("Redirecting to Derivation Lab:", finalUrl);
+
+      // Store return state
+      sessionStorage.setItem('adminReturnState', JSON.stringify({
+        cardId: selectedCard.id,
+        mode: mode
+      }));
+
+      // Redirect to the lab page
+      window.location.href = finalUrl;
+      return;
     }
-    
-    // Add return parameters
-    const returnUrl = encodeURIComponent(window.location.origin);
-    const card = encodeURIComponent(selectedCard.id);
-    const currentMode = encodeURIComponent(mode);
-    
-    // Create the complete URL with query parameters
-    const finalUrl = `${labUrl}/?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
-    
-    console.log("Redirecting to Derivation Lab:", finalUrl);
-    
-    // Store return state
-    sessionStorage.setItem('adminReturnState', JSON.stringify({
-      cardId: selectedCard.id,
-      mode: mode
-    }));
-    
-    // Redirect to the lab page
-    window.location.href = finalUrl;
-    return;
-  }
 
-  // Rest of your existing code...
-  const isSpecial = isSpecialSubject(selectedSubjectName);
-  const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
+    // Rest of your existing code...
+    const isSpecial = isSpecialSubject(selectedSubjectName);
+    const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
 
-  if (isRestrictedCard && !isSpecial && !selectedStandard) {
-    alert('Please select a standard before proceeding for this subject.');
-    return;
-  }
+    if (isRestrictedCard && !isSpecial && !selectedStandard) {
+      alert('Please select a standard before proceeding for this subject.');
+      return;
+    }
 
-  setSelectedIndex(idx);
-  setCurrent(selectedSubjectName || '');
+    setSelectedIndex(idx);
+    setCurrent(selectedSubjectName || '');
 
-  if (navigateToPage) {
-    navigate('/adminright', {
-      state: {
-        cardId: currentCardId,
-        subjectName: selectedSubjectName,
-        standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
-        examTitle: selectedCard.title,
-        examSubtitle: selectedCard.subtitle,
-        courseName: mode,
-      },
-    });
-  }
-};
+    if (navigateToPage) {
+      navigate('/adminright', {
+        state: {
+          cardId: currentCardId,
+          subjectName: selectedSubjectName,
+          standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
+          examTitle: selectedCard.title,
+          examSubtitle: selectedCard.subtitle,
+          courseName: mode,
+        },
+      });
+    }
+  };
 
   const handleCancelAll = () => {
     setSelectedIndex(null);
