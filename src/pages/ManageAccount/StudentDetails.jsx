@@ -216,7 +216,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/getStudentAssessmentAnalysis/${studentId}`, {
         method: 'GET',
-        credentials: 'include',
+        // credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -290,7 +290,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
 
       const response = await fetch(apiUrl, {
         method: 'GET',
-        credentials: 'include',
+        // credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         }
