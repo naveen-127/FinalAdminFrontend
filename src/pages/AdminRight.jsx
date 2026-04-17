@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 }                     from "lucide-react";
-import katex                                  from "katex";
-import parse                                  from "html-react-parser";
+import { Pencil, Trash2 } from "lucide-react";
+import katex from "katex";
+import parse from "html-react-parser";
 import "katex/dist/katex.min.css";
-import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
-import { FaCheckCircle }                      from "react-icons/fa";
+import { API_BASE_URL, FRONTEND_URL_AI } from "../config";
+import { FaCheckCircle } from "react-icons/fa";
 import "./AdminRight.css";
 
 const AdminRight = () => {
@@ -14,7 +14,12 @@ const AdminRight = () => {
   const [hasFetchedData, setHasFetchedData] = useState(false);
 
 
-
+  const [currentContext, setCurrentContext] = useState({
+    subject: '',
+    lesson: '',
+    subtopic: '',
+    standard: ''
+  });
 
   // FIXED: Add these state variables and useEffect with proper dependencies
   useEffect(() => {
@@ -195,6 +200,22 @@ const AdminRight = () => {
     // solutionText:''
   });
 
+  const updateCurrentContext = () => {
+    const context = {
+      subject: subjectName || '',
+      lesson: selectedUnit || '',
+      subtopic: selectedSubTopicUnit?.unitName || selectedSubUnit?.unitName || '',
+      standard: standard || ''
+    };
+    setCurrentContext(context);
+    console.log("📋 Updated context for tags:", context);
+  };
+
+  // Add useEffect to monitor selection changes
+  useEffect(() => {
+    updateCurrentContext();
+  }, [subjectName, selectedUnit, selectedSubTopicUnit, selectedSubUnit, standard]);
+
   const emptyQuestion = {
     text: "",
     questionImages: [],
@@ -348,7 +369,7 @@ const AdminRight = () => {
   }, [unitData]); // Add unitData as dependency
 
 
-    // Add this near your other useEffects
+  // Add this near your other useEffects
   useEffect(() => {
     // When editingQuestionIndex changes, update questionTags from currentQuestion
     if (editingQuestionIndex !== null && questions[editingQuestionIndex]) {
@@ -4766,6 +4787,29 @@ Or just write a paragraph normally.`}
                 {/* Tag Input Section - Add after description textarea */}
                 <div style={{ marginTop: '15px' }}>
                   <h5>Tags & Keywords</h5>
+
+                  {/* Display Current Subject, Lesson, Subtopic for Context */}
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: '#f0f7ff',
+                    borderRadius: '6px',
+                    borderLeft: '3px solid #2196f3',
+                    fontSize: '13px'
+                  }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+                      {subjectName && (
+                        <span>📚 <strong>Subject:</strong> {subjectName}</span>
+                      )}
+                      {selectedUnit && (
+                        <span>📖 <strong>Lesson:</strong> {selectedUnit.split('/')[0]}</span>
+                      )}
+                      {selectedSubTopicUnit?.unitName && (
+                        <span>📝 <strong>Subtopic:</strong> {selectedSubTopicUnit.unitName}</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -4869,19 +4913,92 @@ Or just write a paragraph normally.`}
                     )}
                   </div>
 
-                  {/* Tag suggestions */}
+                  {/* Tag suggestions with Subject, Lesson, Subtopic names */}
                   <div style={{
                     marginTop: '8px',
                     fontSize: '12px',
                     color: '#666'
                   }}>
-                    <strong>Suggestions:</strong>
+                    <strong>Quick Add Tags:</strong>
                     <div style={{
                       display: 'flex',
                       gap: '5px',
                       flexWrap: 'wrap',
                       marginTop: '5px'
                     }}>
+                      {/* Subject Name Button */}
+                      {subjectName && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!tags.includes(subjectName)) {
+                              setTags([...tags, subjectName]);
+                            }
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            background: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + {subjectName}
+                        </button>
+                      )}
+
+                      {/* Lesson Name Button (only first part before slash) */}
+                      {selectedUnit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleanLessonName = selectedUnit.split('/')[0];
+                            if (!tags.includes(cleanLessonName)) {
+                              setTags([...tags, cleanLessonName]);
+                            }
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + {selectedUnit.split('/')[0]}
+                        </button>
+                      )}
+
+                      {/* Subtopic Name Button */}
+                      {selectedSubTopicUnit?.unitName && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!tags.includes(selectedSubTopicUnit.unitName)) {
+                              setTags([...tags, selectedSubTopicUnit.unitName]);
+                            }
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            background: '#ffc107',
+                            color: '#333',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + {selectedSubTopicUnit.unitName}
+                        </button>
+                      )}
+
+                      {/* Separator and common suggestions */}
+                      <span style={{ color: '#ccc', margin: '0 4px' }}>|</span>
+
                       {['formula', 'theory', 'example', 'definition', 'practice', 'concept', 'diagram', 'calculation'].map((suggestion) => (
                         <button
                           key={suggestion}
@@ -5382,6 +5499,29 @@ Or just write a paragraph normally.`}
                 {/* Question Tags Section - Add this after the question text input */}
                 <div style={{ marginTop: '15px', marginBottom: '15px' }}>
                   <h6>Question Tags & Keywords</h6>
+
+                  {/* Display Current Subject, Lesson, Subtopic */}
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: '#f0f7ff',
+                    borderRadius: '6px',
+                    borderLeft: '3px solid #2196f3',
+                    fontSize: '13px'
+                  }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+                      {subjectName && (
+                        <span>📚 <strong>Subject:</strong> {subjectName}</span>
+                      )}
+                      {selectedUnit && (
+                        <span>📖 <strong>Lesson:</strong> {selectedUnit.split('/')[0]}</span>
+                      )}
+                      {selectedSubTopicUnit?.unitName && (
+                        <span>📝 <strong>Subtopic:</strong> {selectedSubTopicUnit.unitName}</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -5396,7 +5536,12 @@ Or just write a paragraph normally.`}
                         if (e.key === 'Enter' && questionTagInput.trim()) {
                           e.preventDefault();
                           if (!questionTags.includes(questionTagInput.trim())) {
-                            setQuestionTags([...questionTags, questionTagInput.trim()]);
+                            const newTags = [...questionTags, questionTagInput.trim()];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({
+                              ...prev,
+                              tags: newTags
+                            }));
                           }
                           setQuestionTagInput('');
                         }
@@ -5415,13 +5560,10 @@ Or just write a paragraph normally.`}
                         if (questionTagInput.trim() && !questionTags.includes(questionTagInput.trim())) {
                           const newTags = [...questionTags, questionTagInput.trim()];
                           setQuestionTags(newTags);
-
-                          // ✅ CRITICAL: Also update currentQuestion.tags
                           setCurrentQuestion(prev => ({
                             ...prev,
                             tags: newTags
                           }));
-
                           setQuestionTagInput('');
                         }
                       }}
@@ -5474,8 +5616,6 @@ Or just write a paragraph normally.`}
                             onClick={() => {
                               const newTags = questionTags.filter((_, i) => i !== index);
                               setQuestionTags(newTags);
-
-                              // ✅ CRITICAL: Also update currentQuestion.tags
                               setCurrentQuestion(prev => ({
                                 ...prev,
                                 tags: newTags
@@ -5502,40 +5642,94 @@ Or just write a paragraph normally.`}
                     )}
                   </div>
 
-                  {/* Question tag suggestions */}
+                  {/* Question tag suggestions with cleaned lesson name */}
                   <div style={{
                     marginTop: '8px',
                     fontSize: '11px',
                     color: '#666'
                   }}>
-                    <strong>Question Tag Suggestions:</strong>
+                    <strong>Quick Add Tags:</strong>
                     <div style={{
                       display: 'flex',
                       gap: '4px',
                       flexWrap: 'wrap',
                       marginTop: '5px'
                     }}>
-                      {['difficult', 'easy', 'tricky', 'concept', 'formula', 'calculation', 'theory', 'diagram', 'proof', 'application'].map((suggestion) => (
+                      {/* Subject Name */}
+                      {subjectName && (
                         <button
-                          key={suggestion}
                           type="button"
                           onClick={() => {
-                            if (!questionTags.includes(suggestion)) {
-                              setQuestionTags([...questionTags, suggestion]);
+                            if (!questionTags.includes(subjectName)) {
+                              const newTags = [...questionTags, subjectName];
+                              setQuestionTags(newTags);
+                              setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
                             }
                           }}
                           style={{
-                            padding: '1px 6px',
-                            background: '#f0f0f0',
-                            border: '1px solid #ddd',
-                            borderRadius: '10px',
+                            padding: '2px 8px',
+                            background: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
                             fontSize: '10px',
                             cursor: 'pointer'
                           }}
                         >
-                          + {suggestion}
+                          + {subjectName}
                         </button>
-                      ))}
+                      )}
+
+                      {/* Lesson Name - only the first part before slash */}
+                      {selectedUnit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleanLessonName = selectedUnit.split('/')[0];
+                            if (!questionTags.includes(cleanLessonName)) {
+                              const newTags = [...questionTags, cleanLessonName];
+                              setQuestionTags(newTags);
+                              setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                            }
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + {selectedUnit.split('/')[0]}
+                        </button>
+                      )}
+
+                      {/* Subtopic Name */}
+                      {selectedSubTopicUnit?.unitName && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!questionTags.includes(selectedSubTopicUnit.unitName)) {
+                              const newTags = [...questionTags, selectedSubTopicUnit.unitName];
+                              setQuestionTags(newTags);
+                              setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                            }
+                          }}
+                          style={{
+                            padding: '2px 8px',
+                            background: '#ffc107',
+                            color: '#333',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + {selectedSubTopicUnit.unitName}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

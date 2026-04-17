@@ -202,7 +202,7 @@ const AdminHome = () => {
       return copy;
     });
     setCurrent('');
-    setSelectedIndex(null);
+    setSelectedIndex(null); 
   };
 
   const handleUpdate = () => {
