@@ -1,20 +1,23 @@
 /* eslint-disable no-undef */
-import React, { useEffect, useState, useCallback }                                         from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './ManageAccount.css';
-import { useNavigate }                                                                     from 'react-router-dom';
-import { API_BASE_URL }                                                                    from '../config';
-import Support                                                                             from './ManageAccount/support';
-import StudentDetails                                                                      from './ManageAccount/StudentDetails';
+import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
+import Support from './ManageAccount/support';
+import StudentDetails from './ManageAccount/StudentDetails';
 import { Search, Filter, Eye, Download, Calendar, User, Mail, Phone, GraduationCap, Edit } from 'lucide-react';
-import People                                                                              from './ManageAccount/PeopleEnquiry';
-import Coupon                                                                              from './ManageAccount/Coupon';
-import StudentForm                                                                         from './ManageAccount/StudentForm';
+import People from './ManageAccount/PeopleEnquiry';
+import Coupon from './ManageAccount/Coupon';
+import StudentForm from './ManageAccount/StudentForm';
+import AssignClass from './ManageAccount/AssignClass';
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
   neet: ['Physics', 'Chemistry', 'Botany', 'Zoology'],
   class11: ['Physics', 'Chemistry', 'Biology', 'Mathematics'],
   class12: ['Physics', 'Chemistry', 'Biology', 'Mathematics'],
+  // Comprehensive subjects for Tutor/Board Exam mode
+  board_exam: ['Physics', 'Chemistry', 'Biology', 'Mathematics', 'English', 'Social Science', 'Science', 'Accountancy', 'Business Studies', 'Economics', 'Computer Science'],
 };
 
 const getCardsForMode = (mode, isTeacher = false) => {
@@ -28,6 +31,11 @@ const getCardsForMode = (mode, isTeacher = false) => {
       return [
         { value: 'jee', label: 'JEE' },
         { value: 'neet', label: 'NEET' },
+      ];
+    } else if (mode === 'tutor') {
+      // NEW: Tutor mode specifically shows Board Exam
+      return [
+        { value: 'board_exam', label: 'Board Exam' },
       ];
     }
   } else {
@@ -143,7 +151,7 @@ const ManageAccount = () => {
     email: '',
     password: '',
     role: 'teacher',
-    access: { mode: '', cardId: '', subjects: [], standards: [] },
+    access: { mode: '', cardId: '', boardType: '', subjects: [], standards: [] },
   });
 
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
@@ -172,6 +180,7 @@ const ManageAccount = () => {
                   access: {
                     mode: u.coursetype || '',
                     cardId: u.courseName || '',
+                    boardType: u.boardType || '',
                     subjects: u.subjects || [],
                     standards: u.standards || [],
                   },
@@ -279,8 +288,9 @@ const ManageAccount = () => {
       access: {
         ...prev.access,
         cardId,
+        boardType: '', // Reset board type when card changes
         standards:
-          cardId === 'class11' ? ['11'] : cardId === 'class12' ? ['12'] : ['11', '12'],
+          cardId === 'class11' ? ['11'] : cardId === 'class12' ? ['12'] : [],
         subjects: defaultSubjs,
       },
     }));
@@ -305,7 +315,7 @@ const ManageAccount = () => {
   const resetTeacherForm = () => {
     setTeacherFormData({
       name: '', phone: '', email: '', password: '', role: 'teacher',
-      access: { mode: '', cardId: '', subjects: [], standards: [] },
+      access: { mode: '', cardId: '', boardType: '', subjects: [], standards: [] },
     });
     setIsEditingTeacher(false);
     setEditIndex(null);
@@ -329,6 +339,7 @@ const ManageAccount = () => {
         role: 'teacher',
         coursetype: teacherFormData.access.mode,
         courseName: teacherFormData.access.cardId,
+        boardType: teacherFormData.access.boardType, // New field for Tutor mode
         standards: teacherFormData.access.standards || [],
         subjects: teacherFormData.access.subjects || [],
       },
@@ -532,6 +543,18 @@ const ManageAccount = () => {
         >
           Coupons
         </button>
+
+        <button
+          className={`sidebar-btn ${selectedSection === 'assign-class' ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedSection('assign-class');
+            setShowSupport(false);
+            setActiveView('');
+            setShowStudentDetails(false);
+          }}
+        >
+          Assign Classes
+        </button>
       </div>
 
       <div className="main-content">
@@ -541,6 +564,8 @@ const ManageAccount = () => {
           <People />
         ) : selectedSection === 'coupons' ? (
           <Coupon />
+        ) : selectedSection === 'assign-class' ? (
+          <AssignClass teachers={teachers} students={students} />
         ) : showStudentDetails ? (
           <StudentDetails
             student={selectedStudent}
@@ -591,13 +616,14 @@ const ManageAccount = () => {
                       const mode = e.target.value;
                       setTeacherFormData((prev) => ({
                         ...prev,
-                        access: { ...prev.access, mode, cardId: '', subjects: [], standards: [] },
+                        access: { ...prev.access, mode, cardId: '', boardType: '', subjects: [], standards: [] },
                       }));
                     }}
                   >
                     <option value="">-- Select --</option>
                     <option value="academics">Academics</option>
                     <option value="professional">Professional</option>
+                    <option value="tutor">Tutor</option>
                   </select>
 
                   <label>Course/Class:</label>
@@ -612,16 +638,46 @@ const ManageAccount = () => {
                     ))}
                   </select>
 
-                  {teacherFormData.access.cardId && (
+                  {/* START OF HIERARCHY LOGIC FOR TUTOR/BOARD EXAM */}
+                  {teacherFormData.access.cardId === 'board_exam' && (
+                    <>
+                      <label>Board Type:</label>
+                      <select 
+                        value={teacherFormData.access.boardType} 
+                        onChange={(e) => setTeacherFormData({...teacherFormData, access: {...teacherFormData.access, boardType: e.target.value}})}
+                      >
+                        <option value="">-- Select Board --</option>
+                        <option value="cbse">CBSE</option>
+                        <option value="state_board">State Board</option>
+                      </select>
+
+                      {teacherFormData.access.boardType && (
+                        <>
+                          <label>Classes (6 - 12):</label>
+                          <div className="checkbox-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                            {['6', '7', '8', '9', '10', '11', '12'].map((std) => (
+                              <label key={std} style={{ fontSize: '12px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={teacherFormData.access.standards.includes(std)}
+                                  onChange={() => handleTeacherStandardChange(std)}
+                                />
+                                Std {std}
+                              </label>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {/* END OF HIERARCHY LOGIC */}
+
+                  {/* Hierarchy logic for regular Academic classes */}
+                  {(teacherFormData.access.cardId === 'class11' || teacherFormData.access.cardId === 'class12') && (
                     <>
                       <label>Standards:</label>
                       <div className="checkbox-group">
-                        {(teacherFormData.access.cardId === 'class11'
-                          ? ['11']
-                          : teacherFormData.access.cardId === 'class12'
-                            ? ['12']
-                            : ['11', '12']
-                        ).map((std) => (
+                        {(teacherFormData.access.cardId === 'class11' ? ['11'] : ['12']).map((std) => (
                           <label key={std}>
                             <input
                               type="checkbox"
@@ -632,11 +688,16 @@ const ManageAccount = () => {
                           </label>
                         ))}
                       </div>
+                    </>
+                  )}
 
+                  {/* All Subject Selection - Shows for any card selection */}
+                  {teacherFormData.access.cardId && (
+                    <>
                       <label>Subjects:</label>
-                      <div className="subject-options">
-                        {(teacherSubjectOptions[teacherFormData.access.cardId] || []).map((subject) => (
-                          <label key={subject}>
+                      <div className="subject-options" style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '8px' }}>
+                        {(teacherSubjectOptions[teacherFormData.access.cardId] || teacherSubjectOptions['board_exam']).map((subject) => (
+                          <label key={subject} style={{ display: 'block', fontSize: '12px', marginBottom: '5px' }}>
                             <input
                               type="checkbox"
                               checked={teacherFormData.access.subjects.includes(subject)}

@@ -7,6 +7,7 @@ import Signup                                     from './pages/Signup';
 import Signin                                     from './pages/Signin';
 import AdminHome                                  from './pages/AdminHome'; // Assuming you have this page
 import AdminRight                                 from './pages/AdminRight';
+import BoardExam                                  from './pages/BoardExam';
 import ManageAccount                              from './pages/ManageAccount'; // Assuming you have this page
 import "./App.css";
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/adminhome" element={<AdminHome />} />
           <Route path="/adminright" element={<AdminRight />} />
+          <Route path="/boardexam" element={<BoardExam />} />
           <Route path="/manage-account" element={<ManageAccount />} />
           {/* Add more routes as needed */}
         </Routes>

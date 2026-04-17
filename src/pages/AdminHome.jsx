@@ -7,7 +7,7 @@ import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },
   { id: 'class1-5', subtitle: 'Class 1 - 5', title: 'Practice Zone' },
-  { id: 'class6-12', subtitle: 'Class 6 - 12', title: 'Board Exam Kit' },
+  { id: 'class6-12', subtitle: 'Class 6 - 12', title: 'Board Exam' },
 ];
 
 const professionalCards = [
@@ -99,8 +99,8 @@ const AdminHome = () => {
           const storedUser = JSON.parse(localStorage.getItem('currentUser'));
           setCurrentUser(storedUser);
           setUserRole(storedUser?.role);
-          setCourseType(storedUser?.courseType);
-          setCourseName(storedUser?.courseName);
+          setCourseType(storedUser?.courseType || storedUser?.coursetype);
+          setCourseName(storedUser?.courseName || storedUser?.coursename);
 
           if (!hasFetchedUserData) {
             // Fetch user data only once
@@ -298,16 +298,29 @@ const AdminHome = () => {
     setCurrent(selectedSubjectName || '');
 
     if (navigateToPage) {
-      navigate('/adminright', {
-        state: {
-          cardId: currentCardId,
-          subjectName: selectedSubjectName,
-          standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
-          examTitle: selectedCard.title,
-          examSubtitle: selectedCard.subtitle,
-          courseName: mode,
-        },
-      });
+      if (selectedCard?.id === 'class6-12') {
+        navigate('/boardexam', {
+          state: {
+            cardId: currentCardId,
+            subjectName: selectedSubjectName,
+            standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
+            examTitle: selectedCard.title,
+            examSubtitle: selectedCard.subtitle,
+            courseName: mode,
+          },
+        });
+      } else {
+        navigate('/adminright', {
+          state: {
+            cardId: currentCardId,
+            subjectName: selectedSubjectName,
+            standard: isSpecial ? (selectedStandard || "General") : selectedStandard,
+            examTitle: selectedCard.title,
+            examSubtitle: selectedCard.subtitle,
+            courseName: mode,
+          },
+        });
+      }
     }
   };
 
@@ -325,6 +338,18 @@ const AdminHome = () => {
   };
 
   const handleCardClick = (card) => {
+    // Immediately redirect for Board Exam card
+    if (card.id === 'class6-12') {
+      navigate('/boardexam', {
+        state: {
+          examTitle: card.title,
+          examSubtitle: card.subtitle,
+          courseName: mode,
+        }
+      });
+      return;
+    }
+
     // Set default subjects based on card type
     if (!subjectsByCard[card.id]) {
       let defaults = [];
@@ -416,7 +441,7 @@ const AdminHome = () => {
         <div className="header">
           {mode === null ? (
             <div className="mode-switch-container">
-              {(userRole === 'admin' || courseType === 'academics') && <button className="mode-button uniform" onClick={() => setMode('academics')}>Academics</button>}
+              {(userRole === 'admin' || courseType === 'academics' || courseType === 'tutor') && <button className="mode-button uniform" onClick={() => setMode('academics')}>Academics</button>}
               {(userRole === 'admin' || courseType === 'professional') && <button className="mode-button uniform" onClick={() => setMode('professional')}>Professional Training</button>}
               {userRole === 'admin' && (<button className="mode-button uniform" onClick={() => navigate('/manage-account')}>Manage Account</button>)}
 
@@ -505,11 +530,15 @@ const AdminHome = () => {
                               <div className="card-title">{cardObj.title}</div>
                               <button className="card-button">Select</button>
                             </div>
-                          ) : (cardObj.id === courseName && (<div key={cardObj.id} className="card" onClick={() => handleCardClick(cardObj)}>
-                            <div className="card-subtitle">{cardObj.subtitle}</div>
-                            <div className="card-title">{cardObj.title}</div>
-                            <button className="card-button">Select</button>
-                          </div>))
+                          ) : (
+                            (cardObj.id === courseName || (courseName === 'board_exam' && cardObj.id === 'class6-12') || (courseName === 'boardexam' && cardObj.id === 'class6-12')) && (
+                              <div key={cardObj.id} className="card" onClick={() => handleCardClick(cardObj)}>
+                                <div className="card-subtitle">{cardObj.subtitle}</div>
+                                <div className="card-title">{cardObj.title}</div>
+                                <button className="card-button">Select</button>
+                              </div>
+                            )
+                          )
                         ))}
                       </div>
                       <div className="card-cancel-wrapper">
