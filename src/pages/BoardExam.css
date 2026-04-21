@@ -521,3 +521,64 @@ em.pending {
   color: white;
   border-color: #22c55e;
 }
+
+.test-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  font-size: 18px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.action-btn.edit {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.action-btn.edit:hover {
+  background: #dbeafe;
+  transform: scale(1.1);
+}
+
+.action-btn.delete {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.action-btn.delete:hover {
+  background: #fee2e2;
+  transform: scale(1.1);
+}
+
+/* Modal overflow fix */
+.correction-modal {
+  max-width: 800px;
+}
+
+/* Ensure the text doesn't overflow in recent tests */
+.item-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+@media (max-width: 768px) {
+  .test-item {
+    flex-wrap: wrap;
+  }
+  .test-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}

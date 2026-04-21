@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FiUpload, FiEdit3, FiCheckCircle, FiFileText, FiArrowLeft } from 'react-icons/fi';
+import { FiUpload, FiEdit3, FiCheckCircle, FiFileText, FiArrowLeft, FiEdit, FiTrash2 } from 'react-icons/fi';
 import './BoardExam.css';
 import { API_BASE_URL } from '../config';
 
@@ -18,6 +18,7 @@ const BoardExam = () => {
   const [file, setFile] = useState(null);
   const [recentTests, setRecentTests] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [editingTestId, setEditingTestId] = useState(null); 
 
   // Correction Modal State
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -29,6 +30,7 @@ const BoardExam = () => {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  // --- PC Mouse Events ---
   const startDrawing = (e) => {
     if (!isPenMode || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -47,7 +49,37 @@ const BoardExam = () => {
     const y = e.clientY - rect.top;
     const ctx = canvasRef.current.getContext('2d');
     ctx.lineTo(x, y);
-    ctx.strokeStyle = '#d32f2f'; // Red pen color
+    ctx.strokeStyle = '#d32f2f'; 
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  };
+
+  // --- Mobile Touch Events ---
+  const handleTouchStart = (e) => {
+    if (!isPenMode || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDrawing || !isPenMode || !canvasRef.current) return;
+    // CRITICAL FIX: Prevent scroll only when drawing
+    if (e.cancelable) e.preventDefault(); 
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#d32f2f';
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -57,6 +89,24 @@ const BoardExam = () => {
     setIsDrawing(false);
   };
 
+  // Passive Event Listener Fix for Mobile
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const options = { passive: false };
+
+    canvas.addEventListener('touchstart', handleTouchStart, options);
+    canvas.addEventListener('touchmove', handleTouchMove, options);
+    canvas.addEventListener('touchend', stopDrawing, options);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', stopDrawing);
+    };
+  }, [isDrawing, isPenMode, selectedSubmission]);
+
   // Fetch data on mount
   useEffect(() => {
     fetchRecentTests();
@@ -65,13 +115,11 @@ const BoardExam = () => {
 
   const fetchRecentTests = async () => {
     try {
-      // Changed to /all to show all subjects (Physics, Chemistry, etc.)
       const res = await fetch(`${API_BASE_URL}/tests/all`, {
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
-        // Sort by date if available (newest first)
         const sortedData = Array.isArray(data) 
           ? data.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0))
           : [];
@@ -100,6 +148,34 @@ const BoardExam = () => {
       console.error("Error fetching submissions:", err);
       setSubmissions([]);
     }
+  };
+
+  const handleDeleteTest = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this test?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/tests/delete/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        alert("Test deleted successfully!");
+        fetchRecentTests();
+      } else {
+        alert("Failed to delete test.");
+      }
+    } catch (err) {
+      console.error("Error deleting test:", err);
+    }
+  };
+
+  const handleEditClick = (test) => {
+    setEditingTestId(test.id || test._id);
+    setTestTitle(test.title);
+    setManualQuestions(test.content || '');
+    setSubjectName(test.subject);
+    setStandard(test.standard);
+    setActiveTab('creation');
+    window.scrollTo(0, 0);
   };
 
   const handleOpenCorrection = (sub) => {
@@ -137,7 +213,6 @@ const BoardExam = () => {
   };
 
   const handleSubmitTest = async () => {
-    // Validation: Prevent sending empty fields that might crash the backend
     if (!subjectName || !standard || !testTitle) {
       alert("Please select a Subject, Class, and enter a Test Title.");
       return;
@@ -148,33 +223,32 @@ const BoardExam = () => {
     formData.append('content', manualQuestions);
     formData.append('subject', subjectName);
     formData.append('standard', standard);
-    
-    // Only append the file if the user selected one
     if (file) {
       formData.append('file', file);
     }
 
+    const url = editingTestId 
+      ? `${API_BASE_URL}/tests/update/${editingTestId}` 
+      : `${API_BASE_URL}/tests/create`;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/tests/create`, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: editingTestId ? 'PUT' : 'POST',
         credentials: 'include',
-        // Note: We do NOT set headers manually for FormData. 
-        // The browser sets the boundary automatically.
         body: formData,
       });
 
       if (response.ok) {
-        alert('Test Paper Submitted Successfully!');
-        // Reset local form states
+        alert(editingTestId ? 'Test Updated Successfully!' : 'Test Paper Submitted Successfully!');
         setTestTitle('');
         setManualQuestions('');
         setFile(null);
+        setEditingTestId(null);
         fetchRecentTests();
       } else {
-        // Try to get detailed error message from server
         const errorText = await response.text();
         console.error('❌ Server Error Details:', errorText);
-        alert(`Submit failed: ${response.status}. Check backend logs.`);
+        alert(`Submit failed: ${response.status}.`);
       }
     } catch (error) {
       console.error('Network Error:', error);
@@ -192,7 +266,7 @@ const BoardExam = () => {
         <nav>
           <button 
             className={activeTab === 'creation' ? 'active' : ''} 
-            onClick={() => setActiveTab('creation')}
+            onClick={() => {setActiveTab('creation'); setEditingTestId(null);}}
           >
             <FiEdit3 /> Test Creation
           </button>
@@ -211,10 +285,9 @@ const BoardExam = () => {
       <main className="exam-content">
         {activeTab === 'creation' ? (
           <div className="fade-in">
-            <h2 className="section-title">Create Question Paper</h2>
+            <h2 className="section-title">{editingTestId ? 'Edit Question Paper' : 'Create Question Paper'}</h2>
             <div className="creation-layout">
               <div className="form-card">
-                {/* Manual Subject/Class selection if not passed via state */}
                 {!location.state?.subjectName && (
                   <div className="subject-selection" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                     <div style={{ flex: 1 }}>
@@ -269,8 +342,15 @@ const BoardExam = () => {
                 </div>
                 
                 <button className="main-submit-btn" onClick={handleSubmitTest}>
-                  Submit Question Paper
+                  {editingTestId ? 'Update Question Paper' : 'Submit Question Paper'}
                 </button>
+                {editingTestId && (
+                  <button className="cancel-btn" style={{width: '100%', marginTop: '10px'}} onClick={() => {
+                    setEditingTestId(null);
+                    setTestTitle('');
+                    setManualQuestions('');
+                  }}>Cancel Edit</button>
+                )}
               </div>
 
               <div className="recent-card">
@@ -278,9 +358,9 @@ const BoardExam = () => {
                 <div className="test-list">
                   {recentTests.length > 0 ? (
                     recentTests.map((test, index) => (
-                      <div key={test.id || index} className="test-item">
+                      <div key={test.id || test._id || index} className="test-item">
                         <FiFileText className="item-icon" />
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <p className="item-title">{test.title}</p>
                           <div className="item-meta">
                             <span className="item-subject">{test.subject}</span>
@@ -289,6 +369,14 @@ const BoardExam = () => {
                               {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'Recent'}
                             </span>
                           </div>
+                        </div>
+                        <div className="test-actions">
+                          <button className="action-btn edit" onClick={() => handleEditClick(test)} title="Edit">
+                            <FiEdit />
+                          </button>
+                          <button className="action-btn delete" onClick={() => handleDeleteTest(test.id || test._id)} title="Delete">
+                            <FiTrash2 />
+                          </button>
                         </div>
                       </div>
                     ))
@@ -321,7 +409,6 @@ const BoardExam = () => {
               )}
             </div>
 
-            {/* Correction Modal */}
             {selectedSubmission && (
               <div className="modal-overlay">
                 <div className="correction-modal">
@@ -339,7 +426,7 @@ const BoardExam = () => {
                       <p><strong>Attached File:</strong></p>
                       {selectedSubmission.answerFilePath.toLowerCase().endsWith('.pdf') ? (
                         <iframe 
-                          src={`${API_BASE_URL.replace('/api', '')}/uploads/tests/${selectedSubmission.answerFilePath}`} 
+                          src={`${API_BASE_URL}/test-submissions/images/${selectedSubmission.answerFilePath}`} 
                           width="100%" 
                           height="400px" 
                           title="Student Answer PDF"
@@ -368,7 +455,8 @@ const BoardExam = () => {
                           
                           <div style={{ position: 'relative', display: 'inline-block' }}>
                             <img 
-                              src={`${API_BASE_URL.replace('/api', '')}/uploads/tests/${selectedSubmission.answerFilePath}`} 
+                              crossOrigin="anonymous"
+                              src={`${API_BASE_URL}/test-submissions/images/${selectedSubmission.answerFilePath}`} 
                               alt="Student Answer" 
                               onLoad={(e) => {
                                 if (canvasRef.current) {
@@ -383,10 +471,6 @@ const BoardExam = () => {
                                 border: '1px solid #ccc', 
                                 display: 'block'
                               }} 
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.alt = "Image file not found on the server's uploads folder";
-                              }}
                             />
                             <canvas
                               ref={canvasRef}
@@ -400,7 +484,8 @@ const BoardExam = () => {
                                 left: 0,
                                 zIndex: 10,
                                 cursor: isPenMode ? 'crosshair' : 'default',
-                                pointerEvents: isPenMode ? 'auto' : 'none'
+                                pointerEvents: isPenMode ? 'auto' : 'none',
+                                touchAction: isPenMode ? 'none' : 'auto'
                               }}
                             />
                           </div>
