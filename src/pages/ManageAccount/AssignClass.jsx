@@ -10,8 +10,19 @@ const AssignClass = ({ teachers = [], students = [] }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [assignedClasses, setAssignedClasses] = useState([]);
     const [isLoadingClasses, setIsLoadingClasses] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
 
     const [editingId, setEditingId] = useState(null);
+
+    useEffect(() => {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (user) {
+            setCurrentUser(user);
+            if (user.role === 'teacher') {
+                setAssignment(prev => ({ ...prev, teacherId: user.id }));
+            }
+        }
+    }, []);
 
     const [assignment, setAssignment] = useState({
         teacherId: '',
@@ -21,7 +32,7 @@ const AssignClass = ({ teachers = [], students = [] }) => {
         mode: 'online',
         startTime: '',
         endTime: '',
-        selectedDates: [], 
+        selectedDates: [],
         meetLink: '',
     });
 
@@ -34,7 +45,15 @@ const AssignClass = ({ teachers = [], students = [] }) => {
                 credentials: 'include'
             });
             const data = await response.json();
-            setAssignedClasses(Array.isArray(data) ? data : []);
+            const allAssigned = Array.isArray(data) ? data : [];
+            
+            // Filter by teacher if applicable
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            if (user && user.role === 'teacher') {
+                setAssignedClasses(allAssigned.filter(cls => String(cls.teacherId) === String(user.id)));
+            } else {
+                setAssignedClasses(allAssigned);
+            }
         } catch (error) {
             console.error("Fetch Error:", error);
         } finally {
@@ -83,7 +102,7 @@ const AssignClass = ({ teachers = [], students = [] }) => {
     const resetForm = () => {
         setEditingId(null);
         setAssignment({
-            teacherId: '', selectedStudents: [], 
+            teacherId: '', selectedStudents: [],
             subject: '', batchType: 'regular', mode: 'online',
             startTime: '', endTime: '', selectedDates: [], meetLink: ''
         });
@@ -105,10 +124,10 @@ const AssignClass = ({ teachers = [], students = [] }) => {
 
     const convertTo12Hour = (time24) => {
         if (!time24) return "";
-        if (time24.includes('AM') || time24.includes('PM')) return time24; 
+        if (time24.includes('AM') || time24.includes('PM')) return time24;
         let [hours, minutes] = time24.split(':');
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12 || 12; 
+        hours = hours % 12 || 12;
         return `${hours}:${minutes} ${ampm}`;
     };
 
@@ -182,10 +201,10 @@ const AssignClass = ({ teachers = [], students = [] }) => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
                             <div>
                                 <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#444' }}>Lead Educator</label>
-                                <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0', outline: 'none' }} value={assignment.teacherId} onChange={(e) => setAssignment({ ...assignment, teacherId: e.target.value })}>
+                                <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0', outline: 'none' }} value={assignment.teacherId} onChange={(e) => setAssignment({ ...assignment, teacherId: e.target.value })} disabled={currentUser?.role === 'teacher'}>
                                     <option value="">Choose a Faculty Member</option>
-                                    {teachers.map((t) => (
-                                        <option key={String(t.id || t._id)} value={t.id || t._id}>{t.userName || t.name} ({t.coursetype || 'Core'})</option>
+                                    {teachers.map((t, index) => (
+                                        <option key={t.id || t._id || `teacher-${index}`} value={t.id || t._id}>{t.userName || t.name} ({t.coursetype || 'Core'})</option>
                                     ))}
                                 </select>
                             </div>
@@ -221,39 +240,39 @@ const AssignClass = ({ teachers = [], students = [] }) => {
 
                             <div>
                                 <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#444' }}>Google Meet Link</label>
-                                <input 
-                                    type="url" 
-                                    placeholder="https://meet.google.com/xxx-xxxx-xxx" 
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0' }} 
-                                    value={assignment.meetLink} 
-                                    onChange={(e) => setAssignment({ ...assignment, meetLink: e.target.value })} 
+                                <input
+                                    type="url"
+                                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0' }}
+                                    value={assignment.meetLink}
+                                    onChange={(e) => setAssignment({ ...assignment, meetLink: e.target.value })}
                                 />
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontWeight: '600', fontSize: '13px', marginBottom: '8px', color: '#444' }}>Select Class Dates</label>
-                                <input 
-                                    type="date" 
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0' }} 
+                                <input
+                                    type="date"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1.5px solid #e0e0e0' }}
                                     onChange={(e) => {
                                         const date = e.target.value;
-                                        if(date && !assignment.selectedDates.includes(date)) {
-                                            setAssignment(prev => ({...prev, selectedDates: [...prev.selectedDates, date]}));
+                                        if (date && !assignment.selectedDates.includes(date)) {
+                                            setAssignment(prev => ({ ...prev, selectedDates: [...prev.selectedDates, date] }));
                                         }
                                     }}
                                 />
                                 <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                     {assignment.selectedDates.map(d => (
-                                        <span key={d} style={{ 
-                                            background: '#eef6ff', color: '#007bff', padding: '5px 10px', 
+                                        <span key={d} style={{
+                                            background: '#eef6ff', color: '#007bff', padding: '5px 10px',
                                             borderRadius: '6px', fontSize: '12px', fontWeight: '600', border: '1px solid #007bff',
                                             display: 'flex', alignItems: 'center', gap: '6px'
                                         }}>
-                                            {d} 
-                                            <XCircle 
-                                                size={14} 
-                                                onClick={() => setAssignment(prev => ({...prev, selectedDates: prev.selectedDates.filter(x => x !== d)}))} 
-                                                style={{cursor:'pointer'}}
+                                            {d}
+                                            <XCircle
+                                                size={14}
+                                                onClick={() => setAssignment(prev => ({ ...prev, selectedDates: prev.selectedDates.filter(x => x !== d) }))}
+                                                style={{ cursor: 'pointer' }}
                                             />
                                         </span>
                                     ))}
@@ -270,8 +289,8 @@ const AssignClass = ({ teachers = [], students = [] }) => {
                             </h3>
                         </div>
                         <div className="custom-scrollbar" style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '20px' }}>
-                            {filteredStudents.map(s => (
-                                <label key={String(s.id || s._id)} style={{
+                            {filteredStudents.map((s, index) => (
+                                <label key={s.id || s._id || `student-${index}`} style={{
                                     display: 'flex', alignItems: 'center', gap: '15px', padding: '12px',
                                     borderRadius: '10px', marginBottom: '8px', cursor: 'pointer',
                                     background: assignment.selectedStudents.includes(s.id || s._id) ? '#f0f7ff' : '#fcfcfc',
@@ -324,8 +343,8 @@ const AssignClass = ({ teachers = [], students = [] }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {assignedClasses.length > 0 ? assignedClasses.map((cls) => (
-                                <tr key={String(cls.id || cls._id)} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                            {assignedClasses.length > 0 ? assignedClasses.map((cls, index) => (
+                                <tr key={cls.id || cls._id || `class-${index}`} style={{ borderBottom: '1px solid #f1f1f1' }}>
                                     <td style={{ padding: '18px' }}>
                                         <div style={{ fontWeight: '700', color: '#1a1a1a', marginBottom: '4px' }}>{cls.subject}</div>
                                         <div style={{ display: 'flex', gap: '4px' }}>

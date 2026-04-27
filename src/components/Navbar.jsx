@@ -34,6 +34,9 @@ useEffect(() => {
             courseType: data.coursetype,
             courseName: data.courseName,
             email: data.userGmail,
+            id: data.id,
+            subjects: data.subjects || [],
+            standards: data.standards || [],
           };
           localStorage.setItem('currentUser', JSON.stringify(userData));
           setCurrentUser(userData);

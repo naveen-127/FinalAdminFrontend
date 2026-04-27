@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate }                from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Signin.css';
-import { FaEye, FaEyeSlash }          from 'react-icons/fa';
-import { API_BASE_URL }               from '../config';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 
 const SignIn = () => {
   const [userName, setUserName] = useState('');
@@ -35,7 +35,7 @@ const SignIn = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const start = performance.now();
-    
+
     fetch(`${API_BASE_URL}/signIn`, {
       method: "POST",
       credentials: 'include',
@@ -49,7 +49,7 @@ const SignIn = () => {
         const end = performance.now();
         console.log(`Fetch for login in sign in took ${end - start} ms`);
         console.log("🔍 Login response data:", data);
-        
+
         if (data.status === 'failed') {
           setMessage("Invalid username or password");
         } else if (data.status === 'pass') {
@@ -62,11 +62,12 @@ const SignIn = () => {
             courseType: data.coursetype,
             courseName: data.courseName,
             subjects: data.subjects || [],      // Added subjects with fallback
-            standards: data.standards || []     // Added standards with fallback
+            standards: data.standards || [],    // Added standards with fallback
+            id: data.id                         // Added user ID
           };
           localStorage.setItem('currentUser', JSON.stringify(userData));
           setMessage("Login successful!");
-          
+
           setTimeout(() => {
             window.dispatchEvent(new Event('userLogin'));
             navigate('/adminhome', { replace: true });
@@ -98,8 +99,8 @@ const SignIn = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <span 
-            className="toggle-icon" 
+          <span
+            className="toggle-icon"
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}

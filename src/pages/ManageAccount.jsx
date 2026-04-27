@@ -139,11 +139,39 @@ const ManageAccount = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    coursetype: '',
-    plan: '',
-    status: '',
     gender: '',
   });
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [assignedStudentIds, setAssignedStudentIds] = useState([]);
+  const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) {
+      setCurrentUser(user);
+      if (user.role === 'teacher') {
+        setActiveView('students'); // Default view for teacher
+        fetchAssignedStudents(user.id);
+      }
+    }
+  }, []);
+
+  const fetchAssignedStudents = async (teacherId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/getAssignedClasses`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const teacherClasses = data.filter(cls => String(cls.teacherId) === String(teacherId));
+        const studentIds = teacherClasses.flatMap(cls => cls.selectedStudents || []);
+        setAssignedStudentIds([...new Set(studentIds)]);
+      }
+      setHasLoadedAssignedStudents(true);
+    } catch (err) {
+      console.error("Error fetching assigned students:", err);
+      setHasLoadedAssignedStudents(true);
+    }
+  };
 
   const [teacherFormData, setTeacherFormData] = useState({
     name: '',
@@ -158,6 +186,9 @@ const ManageAccount = () => {
 
   // ── Fetch all users (teachers + students) ───────────────────────────────
   const getUsers = useCallback(() => {
+    if (!currentUser) return;
+    if (currentUser.role === 'teacher' && !hasLoadedAssignedStudents) return;
+    
     console.log('=== getUsers() started ===');
 
     fetch(`${API_BASE_URL}/getUsers`, { method: 'GET', credentials: 'include' })
@@ -199,15 +230,19 @@ const ManageAccount = () => {
             setTeachers(teacherAdminList);
 
             // Replace both lists with fresh data — triggers filter useEffect
-            setStudents(studentList);
-            setFilteredStudents(studentList); // reset immediately too
+            const finalStudentList = (currentUser?.role === 'teacher')
+              ? studentList.filter(s => assignedStudentIds.includes(s.id))
+              : studentList;
+
+            setStudents(finalStudentList);
+            setFilteredStudents(finalStudentList); // reset immediately too
           });
       })
       .catch((err) => {
         console.error('Error fetching users:', err);
         alert('Error loading user data. Please try again.');
       });
-  }, []);
+  }, [currentUser, assignedStudentIds, hasLoadedAssignedStudents]);
 
   // ── Session check ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -498,17 +533,19 @@ const ManageAccount = () => {
     <div className="manage-account-container">
       <div className="sidebar">
         <h3 className="sidebar-title">Admin Panel</h3>
-        <button
-          className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveView('teachers');
-            setShowSupport(false);
-            setShowStudentDetails(false);
-            setSelectedSection('');
-          }}
-        >
-          Manage Teachers
-        </button>
+        {currentUser?.role !== 'teacher' && (
+          <button
+            className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveView('teachers');
+              setShowSupport(false);
+              setShowStudentDetails(false);
+              setSelectedSection('');
+            }}
+          >
+            Manage Teachers
+          </button>
+        )}
         <button
           className={`sidebar-btn ${activeView === 'students' ? 'active' : ''}`}
           onClick={() => {
@@ -642,9 +679,9 @@ const ManageAccount = () => {
                   {teacherFormData.access.cardId === 'board_exam' && (
                     <>
                       <label>Board Type:</label>
-                      <select 
-                        value={teacherFormData.access.boardType} 
-                        onChange={(e) => setTeacherFormData({...teacherFormData, access: {...teacherFormData.access, boardType: e.target.value}})}
+                      <select
+                        value={teacherFormData.access.boardType}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, access: { ...teacherFormData.access, boardType: e.target.value } })}
                       >
                         <option value="">-- Select Board --</option>
                         <option value="cbse">CBSE</option>
@@ -896,11 +933,9 @@ const ManageAccount = () => {
                                 </div>
                               </td>
                               <td>
-                                <td>
-                                  <span className={`plan-badge plan-${student.plan?.toLowerCase() || 'default'}`}>
-                                    {student.plan || 'N/A'}
-                                  </span>
-                                </td>
+                                <span className={`plan-badge plan-${student.plan?.toLowerCase() || 'default'}`}>
+                                  {student.plan || 'N/A'}
+                                </span>
                               </td>
                               <td>
                                 <span
