@@ -5642,7 +5642,7 @@ Or just write a paragraph normally.`}
                     )}
                   </div>
 
-                  {/* Question tag suggestions with cleaned lesson name */}
+                  {/* Question tag suggestions */}
                   <div style={{
                     marginTop: '8px',
                     fontSize: '11px',
@@ -5730,6 +5730,98 @@ Or just write a paragraph normally.`}
                           + {selectedSubTopicUnit.unitName}
                         </button>
                       )}
+
+                      {/* Separator */}
+                      <span style={{ color: '#ccc', margin: '0 2px' }}>|</span>
+
+                      {/* Formula Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!questionTags.includes('formula')) {
+                            const newTags = [...questionTags, 'formula'];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          background: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Formula
+                      </button>
+
+                      {/* Equation Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!questionTags.includes('equation')) {
+                            const newTags = [...questionTags, 'equation'];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          background: '#20c997',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}                
+                      >
+                        + Equation
+                      </button>
+
+                      {/* Additional common suggestions */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!questionTags.includes('theory')) {
+                            const newTags = [...questionTags, 'theory'];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          background: '#f0f0f0',
+                          border: '1px solid #ddd',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + theory
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!questionTags.includes('practice')) {
+                            const newTags = [...questionTags, 'practice'];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          background: '#f0f0f0',
+                          border: '1px solid #ddd',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + practice
+                      </button>
                     </div>
                   </div>
                 </div>
