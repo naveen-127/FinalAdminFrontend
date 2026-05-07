@@ -137,6 +137,18 @@ const AssignClass = ({ teachers = [], students = [], hideTeacherSelect = false }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation for duplicate batchName + subject
+        const isDuplicate = assignedClasses.some(cls => 
+            cls.batchName?.trim().toLowerCase() === assignment.batchName.trim().toLowerCase() && 
+            cls.subject === assignment.subject &&
+            (editingId ? (cls.id || cls._id) !== editingId : true)
+        );
+
+        if (isDuplicate) {
+            return alert("Error: A batch with this name and subject already exists!");
+        }
+
         if (!assignment.batchName || !assignment.subject || !assignment.standard || !assignment.teacherId || assignment.days.length === 0) {
             return alert("Error: Please fill all basic info, teacher assignment, and schedule days.");
         }
@@ -161,6 +173,10 @@ const AssignClass = ({ teachers = [], students = [], hideTeacherSelect = false }
                 alert(editingId ? "Batch Updated Successfully! ✨" : "Batch Created Successfully! 🔥");
                 resetForm();
                 fetchAssignedClasses();
+            } else if (data.message === 'already exist') {
+                alert("Error: This batch name with the same subject already exists!");
+            } else {
+                alert("Error: " + (data.message || "Failed to process batch"));
             }
         } catch (error) {
             alert("Network Error: Could not reach the server.");

@@ -9,8 +9,19 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedClassPopup, setSelectedClassPopup] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleStartTime, setRescheduleStartTime] = useState('');
+  const [rescheduleEndTime, setRescheduleEndTime] = useState('');
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const convertTo12Hour = (time24) => {
+    if (!time24) return "";
+    if (time24.includes('AM') || time24.includes('PM')) return time24;
+    let [hours, minutes] = time24.split(':');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
   
   const getStudentNames = (studentIds) => {
     if (!studentIds || studentIds.length === 0) return 'No students';
@@ -53,6 +64,19 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
     }
     const cls = selectedClassPopup.cls;
     const oldDate = selectedClassPopup.dateStr;
+
+    // Duplicate Check: Same batch name, same subject, same date
+    const isDuplicate = allAssignedClasses.some(c => 
+      c.batchName === cls.batchName && 
+      c.subject === cls.subject && 
+      (c.selectedDates?.includes(rescheduleDate) || c.rescheduledSlots?.some(s => s.date === rescheduleDate))
+    );
+
+    if (isDuplicate) {
+      console.log("already having like that");
+      alert("Error: A class with the same batch name and subject already exists on this date!");
+      return;
+    }
     
     const payload = {
       type: "RESCHEDULE_REQUEST",
@@ -61,7 +85,9 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
       teacherId: currentUser.id,
       teacherName: currentUser.username,
       oldDate: oldDate,
-      newDate: rescheduleDate
+      newDate: rescheduleDate,
+      newStartTime: convertTo12Hour(rescheduleStartTime),
+      newEndTime: convertTo12Hour(rescheduleEndTime)
     };
 
     setIsSubmitting(true);
@@ -77,6 +103,8 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
         setSelectedClassPopup(null);
         setIsRescheduling(false);
         setRescheduleDate('');
+        setRescheduleStartTime('');
+        setRescheduleEndTime('');
       } else {
         alert("Failed to send reschedule request.");
       }
@@ -110,6 +138,7 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
         
         {Array.from({ length: daysInMonth }).map((_, d) => {
           const dateNum = d + 1;
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
           const dayClasses = getClassesForDate(dateNum);
           const isToday = new Date().getDate() === dateNum && new Date().getMonth() === month && new Date().getFullYear() === year;
           
@@ -119,9 +148,14 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '200px' }} className="custom-scrollbar">
                 {dayClasses.map((cls, idx) => {
                   const isOwnClass = currentUser && (String(cls.teacherId) === String(currentUser.id) || currentUser.role === 'admin');
+                  // Check for rescheduled slot info
+                  const reslot = cls.rescheduledSlots?.find(s => s.date === dateStr);
+                  const isRescheduled = !!reslot;
+                  const displayStartTime = reslot ? reslot.startTime : cls.startTime;
+
                   return (
                     <div key={idx} 
-                      onClick={() => setSelectedClassPopup({ cls, dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`, isOwnClass })}
+                      onClick={() => setSelectedClassPopup({ cls, dateStr, isOwnClass })}
                       style={{ 
                       background: isOwnClass ? '#eef6ff' : '#f5f5f5', 
                       borderLeft: `4px solid ${isOwnClass ? '#007bff' : '#9e9e9e'}`,
@@ -130,8 +164,11 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
                       fontSize: '11px',
                       cursor: 'pointer'
                     }}>
-                      <div style={{ fontWeight: 'bold', color: isOwnClass ? '#0056b3' : '#444', marginBottom: '2px' }}>{cls.batchName} ({cls.subject})</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#666', marginBottom: '2px' }}><FiClock size={10} /> {cls.startTime}</div>
+                      <div style={{ fontWeight: 'bold', color: isOwnClass ? '#0056b3' : '#444', marginBottom: '2px' }}>
+                        {cls.batchName} ({cls.subject})
+                        {isRescheduled && <span style={{ marginLeft: '4px', color: '#ff9800', fontSize: '9px', fontWeight: '900' }}>[RESCHEDULED]</span>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#666', marginBottom: '2px' }}><FiClock size={10} /> {displayStartTime}</div>
                       {!isOwnClass && <div style={{ color: '#888', fontStyle: 'italic', marginTop: '2px' }}>{getTeacherName(cls.teacherId)}</div>}
                     </div>
                   );
@@ -155,9 +192,17 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Subject:</strong> <span>{selectedClassPopup.cls.subject}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Standard:</strong> <span>Class {selectedClassPopup.cls.standard}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Teacher:</strong> <span>{getTeacherName(selectedClassPopup.cls.teacherId)}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Time:</strong> <span>{selectedClassPopup.cls.startTime} - {selectedClassPopup.cls.endTime}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <strong>Time:</strong> 
+                <span>
+                  {selectedClassPopup.cls.rescheduledSlots?.find(s => s.date === selectedClassPopup.dateStr) 
+                    ? `${selectedClassPopup.cls.rescheduledSlots.find(s => s.date === selectedClassPopup.dateStr).startTime} - ${selectedClassPopup.cls.rescheduledSlots.find(s => s.date === selectedClassPopup.dateStr).endTime}`
+                    : `${selectedClassPopup.cls.startTime} - ${selectedClassPopup.cls.endTime}`
+                  }
+                </span>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}><strong>Enrolled:</strong> <span style={{ textAlign: 'right' }}>{selectedClassPopup.cls.selectedStudents?.length || 0} ({getStudentNames(selectedClassPopup.cls.selectedStudents)})</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr} {selectedClassPopup.cls.rescheduledSlots?.some(s => s.date === selectedClassPopup.dateStr) && <span style={{color: '#ff9800', fontSize: '11px'}}>(Rescheduled)</span>}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Mode:</strong> <span>{selectedClassPopup.cls.mode?.toUpperCase()}</span></div>
               {selectedClassPopup.cls.meetLink && selectedClassPopup.cls.mode === 'online' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -177,6 +222,17 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
                   <div className="fade-in">
                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Select New Date:</label>
                     <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #ccc', marginBottom: '15px' }} />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Start Time:</label>
+                        <input type="time" value={rescheduleStartTime} onChange={(e) => setRescheduleStartTime(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #ccc' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>End Time:</label>
+                        <input type="time" value={rescheduleEndTime} onChange={(e) => setRescheduleEndTime(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #ccc' }} />
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button disabled={isSubmitting} onClick={handleReschedule} style={{ background: '#28a745', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer', flex: 1, fontWeight: 'bold' }}>
                         {isSubmitting ? 'Saving...' : 'Save New Date'}
