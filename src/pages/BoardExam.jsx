@@ -14,6 +14,12 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  useEffect(() => {
+    if (allAssignedClasses.length > 0) {
+      console.log("Calendar View Data:", allAssignedClasses);
+    }
+  }, [allAssignedClasses]);
+  
   const convertTo12Hour = (time24) => {
     if (!time24) return "";
     if (time24.includes('AM') || time24.includes('PM')) return time24;
@@ -149,7 +155,7 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
                 {dayClasses.map((cls, idx) => {
                   const isOwnClass = currentUser && (String(cls.teacherId) === String(currentUser.id) || currentUser.role === 'admin');
                   // Check for rescheduled slot info
-                  const reslot = cls.rescheduledSlots?.find(s => s.date === dateStr);
+                  const reslot = cls.rescheduledSlots?.find(s => s.date && s.date.trim() === dateStr.trim());
                   const isRescheduled = !!reslot;
                   const displayStartTime = reslot ? reslot.startTime : cls.startTime;
 
@@ -195,14 +201,14 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <strong>Time:</strong> 
                 <span>
-                  {selectedClassPopup.cls.rescheduledSlots?.find(s => s.date === selectedClassPopup.dateStr) 
-                    ? `${selectedClassPopup.cls.rescheduledSlots.find(s => s.date === selectedClassPopup.dateStr).startTime} - ${selectedClassPopup.cls.rescheduledSlots.find(s => s.date === selectedClassPopup.dateStr).endTime}`
-                    : `${selectedClassPopup.cls.startTime} - ${selectedClassPopup.cls.endTime}`
-                  }
+                  {(() => {
+                    const reslot = selectedClassPopup.cls.rescheduledSlots?.find(s => s.date && s.date.trim() === selectedClassPopup.dateStr.trim());
+                    return reslot ? `${reslot.startTime} - ${reslot.endTime}` : `${selectedClassPopup.cls.startTime} - ${selectedClassPopup.cls.endTime}`;
+                  })()}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}><strong>Enrolled:</strong> <span style={{ textAlign: 'right' }}>{selectedClassPopup.cls.selectedStudents?.length || 0} ({getStudentNames(selectedClassPopup.cls.selectedStudents)})</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr} {selectedClassPopup.cls.rescheduledSlots?.some(s => s.date === selectedClassPopup.dateStr) && <span style={{color: '#ff9800', fontSize: '11px'}}>(Rescheduled)</span>}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr} {selectedClassPopup.cls.rescheduledSlots?.some(s => s.date && s.date.trim() === selectedClassPopup.dateStr.trim()) && <span style={{color: '#ff9800', fontSize: '11px'}}>(Rescheduled)</span>}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Mode:</strong> <span>{selectedClassPopup.cls.mode?.toUpperCase()}</span></div>
               {selectedClassPopup.cls.meetLink && selectedClassPopup.cls.mode === 'online' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -198,7 +198,10 @@ useEffect(() => {
                       {currentUser.role === 'admin' ? (
                         <>
                           <p style={{ margin: '0 0 5px 0' }}><strong>{notif.teacherName}</strong> requested to reschedule <strong>{notif.batchName}</strong>.</p>
-                          <p style={{ margin: '0 0 10px 0', color: '#666' }}>From: {notif.oldDate} <br/> To: {notif.newDate}</p>
+                          <p style={{ margin: '0 0 10px 0', color: '#666' }}>
+                            From: {notif.oldDate} <br/> 
+                            To: {notif.newDate} {notif.newStartTime && <span>({notif.newStartTime})</span>}
+                          </p>
                           <div style={{ display: 'flex', gap: '10px' }}>
                             <button onClick={() => handleAction(notif.id, 'accept')} style={{ flex: 1, padding: '6px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><FaCheck /> Accept</button>
                             <button onClick={() => handleAction(notif.id, 'decline')} style={{ flex: 1, padding: '6px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><FaTimes /> Decline</button>
