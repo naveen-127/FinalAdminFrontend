@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import Support from './ManageAccount/support';
 import StudentDetails from './ManageAccount/StudentDetails';
-import { Search, Filter, Eye, Download, Calendar, User, Mail, Phone, GraduationCap, Edit } from 'lucide-react';
+import { Search, Filter, Eye, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2 } from 'lucide-react';
 import People from './ManageAccount/PeopleEnquiry';
 import Coupon from './ManageAccount/Coupon';
 import StudentForm from './ManageAccount/StudentForm';
@@ -409,30 +409,38 @@ const ManageAccount = () => {
       });
   };
 
-  const handleDelete = (index, isTeacher = false) => {
-    if (!isTeacher) return;
-    const userToDelete = teachers[index];
-    if (!confirm(`Delete teacher: ${userToDelete.name}?`)) return;
+  const handleDelete = (item, type = 'teacher') => {
+    const isTeacher = type === 'teacher';
+    const name = item.name || item.userName || 'Unknown';
+    if (!window.confirm(`Are you sure you want to delete this ${type}: ${name}?`)) return;
 
-    fetch(`${API_BASE_URL}/deleteUser/${userToDelete.email}`, {
+    const url = isTeacher
+      ? `${API_BASE_URL}/deleteUser/${item.email}`
+      : `${API_BASE_URL}/deleteStudent/${item.id || item._id}`;
+
+    const body = isTeacher
+      ? JSON.stringify({ databaseName: 'users', collectionName: 'users' })
+      : null;
+
+    fetch(url, {
       method: 'DELETE',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ databaseName: 'users', collectionName: 'users' }),
+      body: body,
     })
       .then((r) => r.json())
       .then((data) => {
         if (data.status === 'pass') {
-          alert('Teacher deleted!');
+          alert(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted!`);
           getUsers();
-          if (isEditingTeacher && editIndex === index) resetTeacherForm();
+          if (isTeacher && isEditingTeacher) resetTeacherForm();
         } else {
-          alert(data.message || 'Failed to delete teacher');
+          alert(data.message || `Failed to delete ${type}`);
         }
       })
       .catch((err) => {
-        console.error('Error deleting teacher:', err);
-        alert('Error deleting teacher');
+        console.error(`Error deleting ${type}:`, err);
+        alert(`Error deleting ${type}`);
       });
   };
 
@@ -975,6 +983,27 @@ const ManageAccount = () => {
                                   >
                                     <Edit size={16} /> Edit
                                   </button>
+                                  <button
+                                    className="delete-btn"
+                                    onClick={() => handleDelete(student, 'student')}
+                                    title="Delete Student"
+                                    style={{
+                                      padding: '6px 12px',
+                                      backgroundColor: '#fff',
+                                      color: '#dc3545',
+                                      border: '1px solid #dc3545',
+                                      borderRadius: '6px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: '500',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s'
+                                    }}
+                                  >
+                                    <Trash2 size={16} /> Delete
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -1010,7 +1039,7 @@ const ManageAccount = () => {
                           </div>
                         )}
                         <button onClick={() => handleEditTeacher(idx)}>Edit</button>
-                        <button onClick={() => handleDelete(idx, true)}>Delete</button>
+                        <button onClick={() => handleDelete(item, 'teacher')}>Delete</button>
                       </li>
                     ))}
                   </ul>

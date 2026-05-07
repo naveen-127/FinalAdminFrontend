@@ -138,15 +138,16 @@ const AssignClass = ({ teachers = [], students = [], hideTeacherSelect = false }
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validation for duplicate batchName + subject
+        // Validation for duplicate batchName + subject (ignoring spaces and case)
+        const normalize = (str) => str ? str.replace(/\s+/g, '').toLowerCase() : '';
         const isDuplicate = assignedClasses.some(cls => 
-            cls.batchName?.trim().toLowerCase() === assignment.batchName.trim().toLowerCase() && 
-            cls.subject === assignment.subject &&
+            normalize(cls.batchName) === normalize(assignment.batchName) && 
+            normalize(cls.subject) === normalize(assignment.subject) &&
             (editingId ? (cls.id || cls._id) !== editingId : true)
         );
 
         if (isDuplicate) {
-            return alert("Error: A batch with this name and subject already exists!");
+            return alert("Error: A batch with this name and subject already exists (check for similar names with different spacing/case)!");
         }
 
         if (!assignment.batchName || !assignment.subject || !assignment.standard || !assignment.teacherId || assignment.days.length === 0) {
