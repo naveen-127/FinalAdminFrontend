@@ -1609,7 +1609,7 @@ const AdminRight = () => {
     try {
       // You need to create this endpoint in your backend
       const res = await fetch(
-        `${API_BASE_URL}/getTest/${parentId}/${testName}`,
+        `${API_BASE_URL}/getTest/${parentId}/${testName}`,                               
         {
           method: "GET",
           credentials: "include",

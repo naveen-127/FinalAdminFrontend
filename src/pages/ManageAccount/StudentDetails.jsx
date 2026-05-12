@@ -6,7 +6,8 @@ import {
   Percent, Tag, FileText, Shield, Layers, Target,
   CheckCircle, XCircle, AlertCircle, LogIn, LogOut, Timer, RefreshCw
 } from 'lucide-react';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL }                            from '../../config';
+import './StudentDetails.css';
 
 const COURSE_CONFIG = {
   NEET: { coursetype: "NEET", subjects: ["Physics", "Chemistry", "Botany", "Zoology"] },
@@ -871,7 +872,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
 
       {/* SINGLE Analysis Modal */}
       {showAnalysisModal && (
-        <div className="modal-overlay" onClick={() => setShowAnalysisModal(false)}>
+        <div className="student-details-modal-overlay" onClick={() => setShowAnalysisModal(false)}>
           <div className="analysis-modal-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>📊 Assessment History Analysis - {student.firstname} {student.lastname}</h3>
@@ -1022,98 +1023,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
         </div>
       )}
 
-      {/* CSS for vertical navigation layout */}
-      <style jsx>{`
-        /* Main Layout - Sidebar + Content */
-        .details-layout {
-          display: flex;
-          gap: 24px;
-          margin-top: 20px;
-        }
-
-        /* Vertical Sidebar Navigation */
-        .navigation-sidebar {
-          width: 260px;
-          flex-shrink: 0;
-          background: #f8fafc;
-          border-radius: 12px;
-          padding: 16px 12px;
-          height: fit-content;
-          position: sticky;
-          top: 20px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .nav-group {
-          margin-bottom: 20px;
-        }
-
-        .nav-group:last-child {
-          margin-bottom: 0;
-        }
-
-        .nav-group-title {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #64748b;
-          padding: 8px 12px 4px 12px;
-          margin-bottom: 4px;
-        }
-
-        .nav-btn-vertical {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-          padding: 10px 12px;
-          background: transparent;
-          border: none;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #334155;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-align: left;
-        }
-
-        .nav-btn-vertical:hover {
-          background: #e2e8f0;
-          transform: translateX(4px);
-        }
-
-        .nav-btn-vertical.active {
-          background: linear-gradient(135deg, #1e4668 0%, #0f2b3d 100%);
-          color: white;
-          box-shadow: 0 2px 8px rgba(30,70,104,0.2);
-        }
-
-        .nav-btn-vertical span {
-          flex: 1;
-        }
-
-        /* Main Content Area */
-        .main-content-area {
-          flex: 1;
-          min-width: 0;
-        }
-
-        /* Responsive - Stack on mobile */
-        @media (max-width: 768px) {
-          .details-layout {
-            flex-direction: column;
-          }
-          .navigation-sidebar {
-            width: 100%;
-            position: static;
-          }
-          .nav-btn-vertical {
-            padding: 8px 12px;
-          }
-        }
-      `}</style>
+      
     </div>
   );
 };

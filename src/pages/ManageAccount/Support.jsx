@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 import React, { useState, useEffect } from "react";
 import "./Support.css";
-import { API_BASE_URL } from "../../config";
+import { API_BASE_URL }               from "../../config";
 
 const Support = () => {
   const [enquiries, setEnquiries] = useState([]);
@@ -947,24 +947,6 @@ const Support = () => {
         </button>
       </div>
 
-      <div className="support-stats-grid">
-        <div className="support-stat-card-base">
-          <h3>{enquiries.length}</h3>
-          <p>Total Enquiries</p>
-        </div>
-        <div className="support-stat-card-base support-stat-pending">
-          <h3>{enquiries.filter((e) => e.status === "pending").length}</h3>
-          <p>Pending</p>
-        </div>
-        <div className="support-stat-card-base support-stat-assigned">
-          <h3>{enquiries.filter((e) => e.status === "assigned").length}</h3>
-          <p>Assigned</p>
-        </div>
-        <div className="support-stat-card-base support-stat-completed">
-          <h3>{enquiries.filter((e) => e.status === "completed").length}</h3>
-          <p>Completed</p>
-        </div>
-      </div>
 
       <div className="support-enquiries-container">
         {enquiries.length === 0 ? (
