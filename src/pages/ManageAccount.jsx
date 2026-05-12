@@ -1,15 +1,15 @@
 /* eslint-disable no-undef */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback }                                                 from 'react';
 import './ManageAccount.css';
-import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
-import Support from './ManageAccount/support';
-import StudentDetails from './ManageAccount/StudentDetails';
+import { useNavigate }                                                                             from 'react-router-dom';
+import { API_BASE_URL }                                                                            from '../config';
+import Support                                                                                     from './ManageAccount/support';
+import StudentDetails                                                                              from './ManageAccount/StudentDetails';
 import { Search, Filter, Eye, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2 } from 'lucide-react';
-import People from './ManageAccount/PeopleEnquiry';
-import Coupon from './ManageAccount/Coupon';
-import StudentForm from './ManageAccount/StudentForm';
-import AssignClass from './ManageAccount/AssignClass';
+import People                                                                                      from './ManageAccount/PeopleEnquiry';
+import Coupon                                                                                      from './ManageAccount/Coupon';
+import StudentForm                                                                                 from './ManageAccount/StudentForm';
+import AssignClass                                                                                 from './ManageAccount/AssignClass';
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
@@ -136,6 +136,7 @@ const ManageAccount = () => {
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [studentFormMode, setStudentFormMode] = useState('add');
   const [editingStudent, setEditingStudent] = useState(null);
+const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -188,7 +189,7 @@ const ManageAccount = () => {
   const getUsers = useCallback(() => {
     if (!currentUser) return;
     if (currentUser.role === 'teacher' && !hasLoadedAssignedStudents) return;
-    
+
     console.log('=== getUsers() started ===');
 
     fetch(`${API_BASE_URL}/getUsers`, { method: 'GET', credentials: 'include' })
@@ -445,9 +446,23 @@ const ManageAccount = () => {
   };
 
   const handleEditTeacher = (index) => {
+    const teacher = teachers[index];
     setEditIndex(index);
     setIsEditingTeacher(true);
-    setTeacherFormData({ ...teachers[index] });
+    setTeacherFormData({
+      name: teacher.name || '',
+      phone: teacher.phone || '',
+      email: teacher.email || '',
+      password: teacher.password || '',
+      role: teacher.role || 'teacher',
+      access: {
+        mode: teacher.access?.mode || '',
+        cardId: teacher.access?.cardId || '',
+        boardType: teacher.access?.boardType || '',
+        subjects: teacher.access?.subjects || [],
+        standards: teacher.access?.standards || [],
+      },
+    });
     setActiveView('teachers');
     setShowSupport(false);
     setSelectedSection('');
@@ -538,22 +553,33 @@ const ManageAccount = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="manage-account-container">
-      <div className="sidebar">
-        <h3 className="sidebar-title">Admin Panel</h3>
-        {currentUser?.role !== 'teacher' && (
-          <button
-            className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveView('teachers');
-              setShowSupport(false);
-              setShowStudentDetails(false);
-              setSelectedSection('');
-            }}
-          >
-            Manage Teachers
-          </button>
-        )}
+  <div className="manage-account-container">
+    <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <button
+        className="mobile-menu-toggle"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        <span className="hamburger-icon">
+          {sidebarOpen ? '✕' : '☰'}
+        </span>
+        <span className="menu-label">Menu</span>
+      </button>
+
+      <h3 className="sidebar-title">Admin Panel</h3>
+
+      {currentUser?.role !== 'teacher' && (
+        <button
+          className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveView('teachers');
+            setShowSupport(false);
+            setShowStudentDetails(false);
+            setSelectedSection('');
+          }}
+        >
+          Manage Teachers
+        </button>
+      )}
         <button
           className={`sidebar-btn ${activeView === 'students' ? 'active' : ''}`}
           onClick={() => {
@@ -620,151 +646,258 @@ const ManageAccount = () => {
         ) : (
           <div className="manage-container">
             <h2>{activeView === 'teachers' ? 'Manage Teachers' : 'Manage Students'}</h2>
-
-            {/* ── Teacher form ── */}
+            {/* ── Teacher management view ── */}
             {activeView === 'teachers' ? (
-              <form className="user-form" onSubmit={handleTeacherSubmit}>
-                <input
-                  type="text"
-                  placeholder="Teacher Username"
-                  value={teacherFormData.name}
-                  onChange={(e) => setTeacherFormData({ ...teacherFormData, name: e.target.value })}
-                  required
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={teacherFormData.phone}
-                  onChange={(e) => setTeacherFormData({ ...teacherFormData, phone: e.target.value })}
-                  required
-                />
-                <input
-                  type="email"
-                  placeholder="Email ID"
-                  value={teacherFormData.email}
-                  onChange={(e) => setTeacherFormData({ ...teacherFormData, email: e.target.value })}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={teacherFormData.password}
-                  onChange={(e) => setTeacherFormData({ ...teacherFormData, password: e.target.value })}
-                  required
-                />
-
-                <div className="restrictions">
-                  <label>Mode:</label>
-                  <select
-                    value={teacherFormData.access.mode}
-                    onChange={(e) => {
-                      const mode = e.target.value;
-                      setTeacherFormData((prev) => ({
-                        ...prev,
-                        access: { ...prev.access, mode, cardId: '', boardType: '', subjects: [], standards: [] },
-                      }));
-                    }}
-                  >
-                    <option value="">-- Select --</option>
-                    <option value="academics">Academics</option>
-                    <option value="professional">Professional</option>
-                    <option value="tutor">Tutor</option>
-                  </select>
-
-                  <label>Course/Class:</label>
-                  <select
-                    value={teacherFormData.access.cardId}
-                    onChange={handleTeacherCardChange}
-                    disabled={!teacherFormData.access.mode}
-                  >
-                    <option value="">-- Select --</option>
-                    {getCardsForMode(teacherFormData.access.mode, true).map((card) => (
-                      <option key={card.value} value={card.value}>{card.label}</option>
-                    ))}
-                  </select>
-
-                  {/* START OF HIERARCHY LOGIC FOR TUTOR/BOARD EXAM */}
-                  {teacherFormData.access.cardId === 'board_exam' && (
-                    <>
-                      <label>Board Type:</label>
-                      <select
-                        value={teacherFormData.access.boardType}
-                        onChange={(e) => setTeacherFormData({ ...teacherFormData, access: { ...teacherFormData.access, boardType: e.target.value } })}
+              <div className="teachers-management">
+                {/* Existing Teachers Grid with Add Button inside header */}
+                <div className="existing-teachers-section">
+                  <div className="section-header">
+                    <h3>Existing Teachers</h3>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div className="teacher-count">{teachers.length} total</div>
+                      <button
+                        className="add-teacher-btn"
+                        onClick={() => {
+                          resetTeacherForm();
+                          setIsEditingTeacher(true);
+                        }}
                       >
-                        <option value="">-- Select Board --</option>
-                        <option value="cbse">CBSE</option>
-                        <option value="state_board">State Board</option>
-                      </select>
+                        + Add Teacher
+                      </button>
+                    </div>
+                  </div>
 
-                      {teacherFormData.access.boardType && (
-                        <>
-                          <label>Classes (6 - 12):</label>
-                          <div className="checkbox-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                            {['6', '7', '8', '9', '10', '11', '12'].map((std) => (
-                              <label key={std} style={{ fontSize: '12px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={teacherFormData.access.standards.includes(std)}
-                                  onChange={() => handleTeacherStandardChange(std)}
-                                />
-                                Std {std}
-                              </label>
-                            ))}
+                  {/* Create Teacher Form - Shown only when isEditingTeacher is true */}
+                  {isEditingTeacher && (
+                    <div className="create-teacher-section">
+                      <div className="form-header">
+                        <h4>{editIndex !== null ? 'Edit Teacher' : 'Create New Teacher'}</h4>
+                        <button className="close-form-btn" onClick={resetTeacherForm}>×</button>
+                      </div>
+                      <form className="teacher-form" onSubmit={handleTeacherSubmit}>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Username *</label>
+                            <input
+                              type="text"
+                              placeholder="Teacher Username"
+                              value={teacherFormData.name}
+                              onChange={(e) => setTeacherFormData({ ...teacherFormData, name: e.target.value })}
+                              required
+                            />
                           </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {/* END OF HIERARCHY LOGIC */}
-
-                  {/* Hierarchy logic for regular Academic classes */}
-                  {(teacherFormData.access.cardId === 'class11' || teacherFormData.access.cardId === 'class12') && (
-                    <>
-                      <label>Standards:</label>
-                      <div className="checkbox-group">
-                        {(teacherFormData.access.cardId === 'class11' ? ['11'] : ['12']).map((std) => (
-                          <label key={std}>
+                          <div className="form-group">
+                            <label>Email *</label>
                             <input
-                              type="checkbox"
-                              checked={teacherFormData.access.standards.includes(std)}
-                              onChange={() => handleTeacherStandardChange(std)}
+                              type="email"
+                              placeholder="Email ID"
+                              value={teacherFormData.email}
+                              onChange={(e) => setTeacherFormData({ ...teacherFormData, email: e.target.value })}
+                              required
                             />
-                            Std {std}
-                          </label>
-                        ))}
-                      </div>
-                    </>
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Phone Number</label>
+                            <input
+                              type="tel"
+                              placeholder="Phone Number"
+                              value={teacherFormData.phone}
+                              onChange={(e) => setTeacherFormData({ ...teacherFormData, phone: e.target.value })}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Password *</label>
+                            <input
+                              type="password"
+                              placeholder="Password"
+                              value={teacherFormData.password}
+                              onChange={(e) => setTeacherFormData({ ...teacherFormData, password: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Mode</label>
+                            <select
+                              value={teacherFormData.access.mode}
+                              onChange={(e) => {
+                                const mode = e.target.value;
+                                setTeacherFormData((prev) => ({
+                                  ...prev,
+                                  access: { ...prev.access, mode, cardId: '', boardType: '', subjects: [], standards: [] },
+                                }));
+                              }}
+                            >
+                              <option value="">-- Select Mode --</option>
+                              <option value="academics">Academics</option>
+                              <option value="professional">Professional</option>
+                              <option value="tutor">Tutor</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group">
+                            <label>Course/Class</label>
+                            <select
+                              value={teacherFormData.access.cardId}
+                              onChange={handleTeacherCardChange}
+                              disabled={!teacherFormData.access.mode}
+                            >
+                              <option value="">-- Select --</option>
+                              {getCardsForMode(teacherFormData.access.mode, true).map((card) => (
+                                <option key={card.value} value={card.value}>{card.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* START OF HIERARCHY LOGIC FOR TUTOR/BOARD EXAM */}
+                        {teacherFormData.access.cardId === 'board_exam' && (
+                          <div className="form-row">
+                            <div className="form-group">
+                              <label>Board Type</label>
+                              <select
+                                value={teacherFormData.access.boardType}
+                                onChange={(e) => setTeacherFormData({ ...teacherFormData, access: { ...teacherFormData.access, boardType: e.target.value } })}
+                              >
+                                <option value="">-- Select Board --</option>
+                                <option value="cbse">CBSE</option>
+                                <option value="state_board">State Board</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Classes selection for Tutor mode */}
+                        {teacherFormData.access.cardId === 'board_exam' && teacherFormData.access.boardType && (
+                          <div className="form-group full-width">
+                            <label>Classes (6 - 12)</label>
+                            <div className="checkbox-group">
+                              {['6', '7', '8', '9', '10', '11', '12'].map((std) => (
+                                <label key={std}>
+                                  <input
+                                    type="checkbox"
+                                    checked={teacherFormData.access.standards.includes(std)}
+                                    onChange={() => handleTeacherStandardChange(std)}
+                                  />
+                                  Class {std}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Hierarchy logic for regular Academic classes */}
+                        {(teacherFormData.access.cardId === 'class11' || teacherFormData.access.cardId === 'class12') && (
+                          <div className="form-group full-width">
+                            <label>Standards</label>
+                            <div className="checkbox-group">
+                              {(teacherFormData.access.cardId === 'class11' ? ['11'] : ['12']).map((std) => (
+                                <label key={std}>
+                                  <input
+                                    type="checkbox"
+                                    checked={teacherFormData.access.standards.includes(std)}
+                                    onChange={() => handleTeacherStandardChange(std)}
+                                  />
+                                  Class {std}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* All Subject Selection - Shows for any card selection */}
+                        {teacherFormData.access.cardId && (
+                          <div className="form-group full-width">
+                            <label>Subjects</label>
+                            <div className="subject-options">
+                              {(teacherSubjectOptions[teacherFormData.access.cardId] || teacherSubjectOptions['board_exam']).map((subject) => (
+                                <label key={subject}>
+                                  <input
+                                    type="checkbox"
+                                    checked={teacherFormData.access.subjects.includes(subject)}
+                                    onChange={() => handleTeacherSubjectChange(subject)}
+                                  />
+                                  {subject}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <button type="submit" className="create-teacher-btn">
+                          {editIndex !== null ? 'Update Teacher' : 'Create Teacher'}
+                        </button>
+                      </form>
+                    </div>
                   )}
 
-                  {/* All Subject Selection - Shows for any card selection */}
-                  {teacherFormData.access.cardId && (
-                    <>
-                      <label>Subjects:</label>
-                      <div className="subject-options" style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '8px' }}>
-                        {(teacherSubjectOptions[teacherFormData.access.cardId] || teacherSubjectOptions['board_exam']).map((subject) => (
-                          <label key={subject} style={{ display: 'block', fontSize: '12px', marginBottom: '5px' }}>
-                            <input
-                              type="checkbox"
-                              checked={teacherFormData.access.subjects.includes(subject)}
-                              onChange={() => handleTeacherSubjectChange(subject)}
-                            />
-                            {subject}
-                          </label>
-                        ))}
-                      </div>
-                    </>
+                  {/* Teachers Grid */}
+                  {teachers.length === 0 ? (
+                    <div className="empty-state teacher-empty">
+                      <div className="empty-icon">👨‍🏫</div>
+                      <h4>No Teachers Found</h4>
+                      <p>Click "Add Teacher" button above to get started.</p>
+                    </div>
+                  ) : (
+                    <div className="teachers-grid">
+                      {teachers.map((item, idx) => {
+                        // Safely get access data
+                        const accessMode = item.access?.mode || item.coursetype || '';
+                        const accessCardId = item.access?.cardId || item.courseName || '';
+                        const accessSubjects = item.access?.subjects || item.subjects || [];
+                        const accessStandards = item.access?.standards || item.standards || [];
+
+                        return (
+                          <div key={idx} className="teacher-card">
+                            <div className="teacher-card-header">
+                              <div className="teacher-avatar">
+                                {(item.name || 'T').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="teacher-info">
+                                <h4>{item.name || item.userName}</h4>
+                                <span className="teacher-role">{item.role || 'teacher'}</span>
+                              </div>
+                            </div>
+                            <div className="teacher-card-body">
+                              <div className="teacher-detail">
+                                <Mail size={14} />
+                                <span>{item.email || item.gmail}</span>
+                              </div>
+                              <div className="teacher-detail">
+                                <Phone size={14} />
+                                <span>{item.phone || item.phoneNumber || 'Not provided'}</span>
+                              </div>
+                              {accessMode && (
+                                <div className="teacher-access">
+                                  <div className="access-badge">{accessMode}</div>
+                                  {accessCardId && <div className="access-badge">{accessCardId}</div>}
+                                  {accessSubjects.length > 0 && (
+                                    <div className="access-badge subjects">
+                                      {accessSubjects.slice(0, 2).join(', ')}{accessSubjects.length > 2 && ` +${accessSubjects.length - 2}`}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="teacher-card-footer">
+                              <button className="teacher-edit-btn" onClick={() => handleEditTeacher(idx)}>
+                                <Edit size={14} /> Edit
+                              </button>
+                              <button className="teacher-delete-btn" onClick={() => handleDelete(item, 'teacher')}>
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-
-                <button type="submit" className="create-teacher-btn">
-                  {isEditingTeacher ? 'Update Teacher' : 'Create Teacher'}
-                </button>
-                {isEditingTeacher && (
-                  <button type="button" onClick={resetTeacherForm} className="cancel-btn">
-                    Cancel Edit
-                  </button>
-                )}
-              </form>
+              </div>
             ) : (
               /* ── Student management panel ── */
               <div className="student-management-panel">
@@ -835,49 +968,24 @@ const ManageAccount = () => {
                       </select>
                     </div>
                     <button className="reset-filters-btn" onClick={resetFilters}>Reset Filters</button>
-                    <button className="export-btn" onClick={handleExportStudents}>
-                      <Download size={16} /> Export CSV
-                    </button>
                   </div>
                 </div>
 
-                {/* Add Student */}
-                <div className="add-student-section">
-                  <button className="add-student-btn" onClick={handleAddStudent}>
-                    <User size={18} /> Add New Student
-                  </button>
-                </div>
-
-                {/* Stats */}
-                <div className="student-stats">
-                  <div className="stat-card">
-                    <span className="stat-number">{students.length}</span>
-                    <span className="stat-label">Total Students</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-number">{students.filter((s) => s.status === 'active').length}</span>
-                    <span className="stat-label">Active</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-number">{students.filter((s) => s.plan === 'trial').length}</span>
-                    <span className="stat-label">Trial</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-number">{students.filter((s) => s.status === 'expiring').length}</span>
-                    <span className="stat-label">Expiring</span>
-                  </div>
-                </div>
-
-                {/* Student table */}
+                {/* Student list header with Add button inside */}
                 <div className="student-list-container">
                   <div className="list-header">
-                    <h3>
-                      Students ({filteredStudents.length})
-                      <span className="search-summary">
-                        {searchTerm && ` matching "${searchTerm}"`}
-                        {Object.values(filters).some((f) => f) && ' with filters applied'}
-                      </span>
-                    </h3>
+                    <div className="list-header-left">
+                      <h3>
+                        Students ({filteredStudents.length})
+                        <span className="search-summary">
+                          {searchTerm && ` matching "${searchTerm}"`}
+                          {Object.values(filters).some((f) => f) && ' with filters applied'}
+                        </span>
+                      </h3>
+                    </div>
+                    <button className="add-student-btn" onClick={handleAddStudent}>
+                      <User size={18} /> Add New Student
+                    </button>
                   </div>
 
                   {filteredStudents.length === 0 ? (
@@ -1013,37 +1121,6 @@ const ManageAccount = () => {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Teacher list */}
-            {activeView === 'teachers' && (
-              <div className="user-list">
-                <h3>Existing Teachers</h3>
-                {teachers.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No teachers found. Create your first teacher using the form above.</p>
-                  </div>
-                ) : (
-                  <ul>
-                    {teachers.map((item, idx) => (
-                      <li key={idx} className="teacher-item">
-                        <strong>{item.name}</strong> ({item.email})<br />
-                        📞 {item.phone}<br />
-                        🛡 <span className="role-badge">{item.role}</span><br />
-                        {item.access.mode && (
-                          <div className="access-summary">
-                            Mode: {item.access.mode}, Course: {item.access.cardId},{' '}
-                            Subjects: {item.access.subjects.join(', ')}, Standards:{' '}
-                            {item.access.standards.join(',')}
-                          </div>
-                        )}
-                        <button onClick={() => handleEditTeacher(idx)}>Edit</button>
-                        <button onClick={() => handleDelete(item, 'teacher')}>Delete</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
             )}
           </div>

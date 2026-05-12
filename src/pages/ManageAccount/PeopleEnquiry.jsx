@@ -458,22 +458,6 @@ const PeopleEnquiry = () => {
       <div className="enquiry-header">
         <h2>People Enquiries</h2>
         <div className="header-stats">
-          <div className="stat-item">
-            <span className="stat-number">{enquiries.length}</span>
-            <span className="stat-label">Total</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">{enquiries.filter(e => e.status === 'new').length}</span>
-            <span className="stat-label">New</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">{enquiries.filter(e => e.marketingStatus === 'moved').length}</span>
-            <span className="stat-label">Moved</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">{enquiries.filter(e => e.isRegistered).length}</span>
-            <span className="stat-label">Registered</span>
-          </div>
         </div>
       </div>
 
