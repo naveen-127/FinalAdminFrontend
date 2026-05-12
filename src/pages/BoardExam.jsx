@@ -1,10 +1,79 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FiUpload, FiEdit3, FiCheckCircle, FiFileText, FiArrowLeft, FiEdit, FiTrash2, FiUsers, FiBookOpen, FiImage, FiRotateCcw, FiScissors, FiMenu, FiX, FiZap, FiCalendar, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiUpload, FiEdit3, FiCheckCircle, FiFileText, FiArrowLeft, FiEdit, FiTrash2, FiUsers, FiBookOpen, FiImage, FiRotateCcw, FiScissors, FiMenu, FiX, FiZap, FiCalendar, FiClock, FiChevronLeft, FiChevronRight, FiLoader, FiExternalLink } from 'react-icons/fi';
 import './BoardExam.css';
 import './ManageAccount.css';
 import { API_BASE_URL } from '../config';
 
+const PdfRenderer = ({ url, onHeightChange }) => {
+  const containerRef = useRef(null);
+  const [isRendering, setIsRendering] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const renderPdf = async () => {
+      try {
+        setIsRendering(true);
+        if (!window.pdfjsLib) {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          document.head.appendChild(script);
+          await new Promise((res) => { script.onload = res; });
+          window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const loadingTask = window.pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        
+        if (!isMounted || !containerRef.current) return;
+        
+        containerRef.current.innerHTML = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.style.width = '100%';
+          canvas.style.display = 'block';
+          canvas.style.marginBottom = '10px';
+          canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+          
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          
+          if (!isMounted) return;
+          containerRef.current.appendChild(canvas);
+        }
+        
+        setIsRendering(false);
+        if (onHeightChange && containerRef.current) {
+           onHeightChange(containerRef.current.scrollHeight);
+        }
+      } catch (err) {
+        console.error("Error rendering PDF:", err);
+        setIsRendering(false);
+      }
+    };
+    
+    renderPdf();
+    return () => { isMounted = false; };
+  }, [url]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', minHeight: '100vh', background: '#e5e7eb' }}>
+      {isRendering && (
+        <div style={{ position: 'absolute', top: '50px', left: '50%', transform: 'translateX(-50%)', background: '#064e3b', color: 'white', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+          Rendering PDF Pages...
+        </div>
+      )}
+      <div ref={containerRef} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }} />
+    </div>
+  );
+};
 const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAssignedClasses, allStudents }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedClassPopup, setSelectedClassPopup] = useState(null);
@@ -13,13 +82,13 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
   const [rescheduleEndTime, setRescheduleEndTime] = useState('');
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   useEffect(() => {
     if (allAssignedClasses.length > 0) {
       console.log("Calendar View Data:", allAssignedClasses);
     }
   }, [allAssignedClasses]);
-  
+
   const convertTo12Hour = (time24) => {
     if (!time24) return "";
     if (time24.includes('AM') || time24.includes('PM')) return time24;
@@ -28,7 +97,7 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
     hours = hours % 12 || 12;
     return `${hours}:${minutes} ${ampm}`;
   };
-  
+
   const getStudentNames = (studentIds) => {
     if (!studentIds || studentIds.length === 0) return 'No students';
     return studentIds.map(id => {
@@ -42,12 +111,12 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  
+
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
-  
+
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
+
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
@@ -72,9 +141,9 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
     const oldDate = selectedClassPopup.dateStr;
 
     // Duplicate Check: Same batch name, same subject, same date
-    const isDuplicate = allAssignedClasses.some(c => 
-      c.batchName === cls.batchName && 
-      c.subject === cls.subject && 
+    const isDuplicate = allAssignedClasses.some(c =>
+      c.batchName === cls.batchName &&
+      c.subject === cls.subject &&
       (c.selectedDates?.includes(rescheduleDate) || c.rescheduledSlots?.some(s => s.date === rescheduleDate))
     );
 
@@ -83,7 +152,7 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
       alert("Error: A class with the same batch name and subject already exists on this date!");
       return;
     }
-    
+
     const payload = {
       type: "RESCHEDULE_REQUEST",
       classAssignmentId: cls.id || cls._id,
@@ -123,66 +192,67 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
   };
 
   return (
-    <div className="fade-in" style={{ padding: '35px 25px 25px 25px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginTop: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-        <h2 style={{ margin: 0, color: '#333', fontSize: '26px' }}>Class Schedule</h2>
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <button onClick={prevMonth} style={{ padding: '8px 12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><FiChevronLeft size={18} /></button>
-          <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#007bff', minWidth: '150px', textAlign: 'center' }}>{monthNames[month]} {year}</span>
-          <button onClick={nextMonth} style={{ padding: '8px 12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><FiChevronRight size={18} /></button>
+    <div className="calendar-view-container fade-in">
+      <div className="calendar-header">
+        <h2 className="calendar-title">Class Schedule</h2>
+        <div className="calendar-controls">
+          <button onClick={prevMonth} className="calendar-nav-btn"><FiChevronLeft size={18} /></button>
+          <span className="calendar-current-month">{monthNames[month]} {year}</span>
+          <button onClick={nextMonth} className="calendar-nav-btn"><FiChevronRight size={18} /></button>
         </div>
       </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: '#e0e0e0', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} style={{ background: '#f8f9fa', padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#555', fontSize: '14px' }}>{day}</div>
-        ))}
-        
-        {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ background: '#fff', minHeight: '120px' }}></div>
-        ))}
-        
-        {Array.from({ length: daysInMonth }).map((_, d) => {
-          const dateNum = d + 1;
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
-          const dayClasses = getClassesForDate(dateNum);
-          const isToday = new Date().getDate() === dateNum && new Date().getMonth() === month && new Date().getFullYear() === year;
-          
-          return (
-            <div key={`day-${dateNum}`} style={{ background: isToday ? '#f0f7ff' : '#fff', minHeight: '140px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontWeight: 'bold', color: isToday ? '#007bff' : '#333', textAlign: 'right', fontSize: '15px', marginBottom: '8px' }}>{dateNum}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '200px' }} className="custom-scrollbar">
-                {dayClasses.map((cls, idx) => {
-                  const isOwnClass = currentUser && (String(cls.teacherId) === String(currentUser.id) || currentUser.role === 'admin');
-                  // Check for rescheduled slot info
-                  const reslot = cls.rescheduledSlots?.find(s => s.date && s.date.trim() === dateStr.trim());
-                  const isRescheduled = !!reslot;
-                  const displayStartTime = reslot ? reslot.startTime : cls.startTime;
 
-                  return (
-                    <div key={idx} 
-                      onClick={() => setSelectedClassPopup({ cls, dateStr, isOwnClass })}
-                      style={{ 
-                      background: isOwnClass ? '#eef6ff' : '#f5f5f5', 
-                      borderLeft: `4px solid ${isOwnClass ? '#007bff' : '#9e9e9e'}`,
-                      padding: '6px', 
-                      borderRadius: '4px', 
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}>
-                      <div style={{ fontWeight: 'bold', color: isOwnClass ? '#0056b3' : '#444', marginBottom: '2px' }}>
-                        {cls.batchName} ({cls.subject})
-                        {isRescheduled && <span style={{ marginLeft: '4px', color: '#ff9800', fontSize: '9px', fontWeight: '900' }}>[RESCHEDULED]</span>}
+      <div className="calendar-scroll-wrapper">
+        <div className="calendar-grid-main">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="calendar-day-header">{day}</div>
+          ))}
+
+          {Array.from({ length: firstDay }).map((_, i) => (
+            <div key={`empty-${i}`} className="calendar-day-cell empty"></div>
+          ))}
+
+          {Array.from({ length: daysInMonth }).map((_, d) => {
+            const dateNum = d + 1;
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
+            const dayClasses = getClassesForDate(dateNum);
+            const isToday = new Date().getDate() === dateNum && new Date().getMonth() === month && new Date().getFullYear() === year;
+            return (
+              <div key={`day-${dateNum}`} className={`calendar-day-cell ${isToday ? 'is-today' : ''}`}>
+                <div className={`calendar-date-number ${isToday ? 'is-today' : ''}`}>{dateNum}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '200px' }} className="custom-scrollbar">
+                  {dayClasses.map((cls, idx) => {
+                    const isOwnClass = currentUser && (String(cls.teacherId) === String(currentUser.id) || currentUser.role === 'admin');
+                    // Check for rescheduled slot info
+                    const reslot = cls.rescheduledSlots?.find(s => s.date && s.date.trim() === dateStr.trim());
+                    const isRescheduled = !!reslot;
+                    const displayStartTime = reslot ? reslot.startTime : cls.startTime;
+
+                    return (
+                      <div key={idx}
+                        onClick={() => setSelectedClassPopup({ cls, dateStr, isOwnClass })}
+                        style={{
+                          background: isOwnClass ? '#eef6ff' : '#f5f5f5',
+                          borderLeft: `4px solid ${isOwnClass ? '#007bff' : '#9e9e9e'}`,
+                          padding: '6px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          cursor: 'pointer'
+                        }}>
+                        <div style={{ fontWeight: 'bold', color: isOwnClass ? '#0056b3' : '#444', marginBottom: '2px' }}>
+                          {cls.batchName} ({cls.subject})
+                          {isRescheduled && <span style={{ marginLeft: '4px', color: '#ff9800', fontSize: '9px', fontWeight: '900' }}>[RESCHEDULED]</span>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#666', marginBottom: '2px' }}><FiClock size={10} /> {displayStartTime}</div>
+                        {!isOwnClass && <div style={{ color: '#888', fontStyle: 'italic', marginTop: '2px' }}>{getTeacherName(cls.teacherId)}</div>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#666', marginBottom: '2px' }}><FiClock size={10} /> {displayStartTime}</div>
-                      {!isOwnClass && <div style={{ color: '#888', fontStyle: 'italic', marginTop: '2px' }}>{getTeacherName(cls.teacherId)}</div>}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {selectedClassPopup && (
@@ -192,14 +262,14 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
               <h3 style={{ margin: 0, color: '#333' }}>Class Details</h3>
               <FiX size={24} style={{ cursor: 'pointer', color: '#666' }} onClick={() => { setSelectedClassPopup(null); setIsRescheduling(false); }} />
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: '#444' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Batch Name:</strong> <span>{selectedClassPopup.cls.batchName}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Subject:</strong> <span>{selectedClassPopup.cls.subject}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Standard:</strong> <span>Class {selectedClassPopup.cls.standard}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Teacher:</strong> <span>{getTeacherName(selectedClassPopup.cls.teacherId)}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <strong>Time:</strong> 
+                <strong>Time:</strong>
                 <span>
                   {(() => {
                     const reslot = selectedClassPopup.cls.rescheduledSlots?.find(s => s.date && s.date.trim() === selectedClassPopup.dateStr.trim());
@@ -208,11 +278,11 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}><strong>Enrolled:</strong> <span style={{ textAlign: 'right' }}>{selectedClassPopup.cls.selectedStudents?.length || 0} ({getStudentNames(selectedClassPopup.cls.selectedStudents)})</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr} {selectedClassPopup.cls.rescheduledSlots?.some(s => s.date && s.date.trim() === selectedClassPopup.dateStr.trim()) && <span style={{color: '#ff9800', fontSize: '11px'}}>(Rescheduled)</span>}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Date Scheduled:</strong> <span style={{ color: '#007bff', fontWeight: 'bold' }}>{selectedClassPopup.dateStr} {selectedClassPopup.cls.rescheduledSlots?.some(s => s.date && s.date.trim() === selectedClassPopup.dateStr.trim()) && <span style={{ color: '#ff9800', fontSize: '11px' }}>(Rescheduled)</span>}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Mode:</strong> <span>{selectedClassPopup.cls.mode?.toUpperCase()}</span></div>
               {selectedClassPopup.cls.meetLink && selectedClassPopup.cls.mode === 'online' && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong>Meeting Link:</strong> 
+                  <strong>Meeting Link:</strong>
                   <a href={selectedClassPopup.cls.meetLink} target="_blank" rel="noreferrer" style={{ background: '#eef6ff', color: '#007bff', padding: '4px 12px', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold' }}>Join Class</a>
                 </div>
               )}
@@ -228,7 +298,7 @@ const CalendarView = ({ allAssignedClasses, currentUser, allTeachers, fetchAllAs
                   <div className="fade-in">
                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Select New Date:</label>
                     <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #ccc', marginBottom: '15px' }} />
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Start Time:</label>
@@ -274,6 +344,7 @@ const BoardExam = () => {
   const [allTeachers, setAllTeachers] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSubmittingTest, setIsSubmittingTest] = useState(false);
 
   // Lesson State
   const [activeTab, setActiveTab] = useState('calendar');
@@ -286,6 +357,7 @@ const BoardExam = () => {
   const [lessonHistory, setLessonHistory] = useState([]);
   const lessonHistoryRef = useRef([]);
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+  const [pdfPageCount, setPdfPageCount] = useState(1);
 
   // Auth state
   const [currentUser, setCurrentUser] = useState(null);
@@ -320,7 +392,7 @@ const BoardExam = () => {
       if (res.ok) {
         const data = await res.json();
         setAllAssignedClasses(data);
-        
+
         if (user && user.role === 'teacher') {
           // Filter classes assigned to this teacher and extract student IDs
           const teacherClasses = data.filter(cls => String(cls.teacherId) === String(user.id));
@@ -570,22 +642,92 @@ const BoardExam = () => {
 
   const [lessonFileType, setLessonFileType] = useState('');
   const [lessonFileName, setLessonFileName] = useState('');
+  const [workspaceHeight, setWorkspaceHeight] = useState(15000); // Dynamic height to solve blank space issue
 
-  const handleLessonImageUpload = (e) => {
+  const countPdfPages = (file) => {
+    return new Promise(async (resolve) => {
+      try {
+        // Load PDF.js from CDN if not already present
+        if (!window.pdfjsLib) {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.async = true;
+          document.head.appendChild(script);
+          await new Promise((res) => {
+            script.onload = res;
+            script.onerror = () => res(null);
+          });
+        }
+
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        if (!pdfjsLib) throw new Error("PDF.js not loaded");
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        console.log("PDF.js detected pages:", pdf.numPages);
+        resolve(pdf.numPages);
+      } catch (err) {
+        console.error("PDF.js failed, falling back to robust regex:", err);
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const content = e.target.result;
+          
+          // Improved Regex Fallback
+          const allCounts = content.match(/\/Count\s+(\d+)/g);
+          if (allCounts) {
+            const counts = allCounts.map(m => {
+              const match = m.match(/\d+/);
+              return match ? parseInt(match[0]) : 0;
+            });
+            const maxCount = Math.max(...counts);
+            if (maxCount > 0) {
+              resolve(maxCount);
+              return;
+            }
+          }
+
+          const pageMatches = content.match(/\/Type\s*\/Page\b/gi) || [];
+          if (pageMatches.length > 0) {
+            resolve(pageMatches.length);
+            return;
+          }
+
+          resolve(1);
+        };
+        reader.readAsBinaryString(file);
+      }
+    });
+  };
+
+  const handleLessonImageUpload = async (e) => {
     const uploadedFile = e.target.files[0];
     if (uploadedFile) {
       setLessonFileType(uploadedFile.type);
       setLessonFileName(uploadedFile.name);
 
-      // Cleanup previous blob URL if exists
+      if (uploadedFile.type.includes('pdf')) {
+        const pages = await countPdfPages(uploadedFile);
+        setPdfPageCount(pages);
+        const calculatedHeight = pages * 1120 + 20; // Exact fit
+        setWorkspaceHeight(calculatedHeight);
+      } else {
+        setPdfPageCount(1);
+        setWorkspaceHeight(15000);
+      }
+
       if (lessonImage && lessonImage.startsWith('blob:')) {
         URL.revokeObjectURL(lessonImage);
       }
-
       const blobUrl = URL.createObjectURL(uploadedFile);
       setLessonImage(blobUrl);
       setLessonHistory([]);
-      setIsSidebarHidden(true); // Auto-hide sidebar for focus
+      lessonHistoryRef.current = [];
+      setIsSidebarHidden(true);
     }
   };
 
@@ -596,24 +738,21 @@ const BoardExam = () => {
 
     if (lessonFileType.includes('pdf')) {
       canvas.width = 2000;
-      canvas.height = 5000;
+      canvas.height = workspaceHeight;
     } else if (lessonFileType.startsWith('image/')) {
-      // For images, dimensions are set in the onLoad handler of the <img> tag
+      // Dimensions set in <img> onLoad
     } else {
       canvas.width = 1200;
       canvas.height = 800;
     }
 
-    // Restore drawings if any exist (e.g. after a dimension reset)
     if (lessonHistoryRef.current.length > 0) {
       const ctx = canvas.getContext('2d');
       const img = new Image();
       img.src = lessonHistoryRef.current[lessonHistoryRef.current.length - 1];
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-      };
+      img.onload = () => ctx.drawImage(img, 0, 0);
     }
-  }, [lessonImage, lessonFileType]);
+  }, [lessonImage, lessonFileType, workspaceHeight]);
 
   // Event Listeners: Handle drawing interactions
   useEffect(() => {
@@ -657,17 +796,9 @@ const BoardExam = () => {
 
         // Filter by teacher if applicable
         if (currentUser && currentUser.role === 'teacher') {
-          const filtered = sortedData.filter(test => {
-            // A. Teacher created the test
-            const isOwner = String(test.teacherId) === String(currentUser.id);
-
-            // B. Teacher is assigned to this subject via a Class Assignment
-            const isAssignedSubject = assignedClasses.some(cls =>
-              String(cls.subject).toLowerCase() === String(test.subject).toLowerCase()
-            );
-
-            return isOwner || isAssignedSubject;
-          });
+          const filtered = sortedData.filter(test =>
+            String(test.teacherId) === String(currentUser.id)
+          );
           setRecentTests(filtered);
         } else {
           setRecentTests(sortedData);
@@ -693,18 +824,9 @@ const BoardExam = () => {
 
         // 1. Filter by teacher responsibility if role is teacher
         if (currentUser && currentUser.role === 'teacher') {
-          filtered = filtered.filter(sub => {
-            // A. Teacher created the test - ALWAYS ALLOW
-            const isOwner = sub.testTeacherId && String(sub.testTeacherId) === String(currentUser.id);
-
-            // B. Teacher is assigned to this student for this subject via Class Assignment
-            const isAssignedToStudentAndSubject = assignedClasses.some(cls =>
-              (cls.selectedStudents || []).includes(sub.studentId) &&
-              String(cls.subject).toLowerCase() === String(sub.subject).toLowerCase()
-            );
-
-            return isOwner || isAssignedToStudentAndSubject;
-          });
+          filtered = filtered.filter(sub =>
+            sub.testTeacherId && String(sub.testTeacherId) === String(currentUser.id)
+          );
         }
 
         // 2. Further filter by selected UI filters (Subject, Class, Board)
@@ -852,6 +974,7 @@ const BoardExam = () => {
       return;
     }
 
+    setIsSubmittingTest(true);
     const formData = new FormData();
     formData.append('title', testTitle);
     formData.append('questions', manualQuestions);
@@ -891,6 +1014,8 @@ const BoardExam = () => {
     } catch (error) {
       console.error('Network Error:', error);
       alert('Error: Network issue or Server is unreachable.');
+    } finally {
+      setIsSubmittingTest(false);
     }
   };
 
@@ -949,7 +1074,8 @@ const BoardExam = () => {
         setSelectedAssignedBatches([]);
         fetchLearningMaterials();
       } else {
-        alert("Upload failed.");
+        const errorText = await res.text();
+        alert("Upload failed: " + errorText);
       }
     } catch (error) {
       console.error(error);
@@ -1001,7 +1127,7 @@ const BoardExam = () => {
   };
 
   return (
-    <div className={`board-exam-container ${isSidebarHidden ? 'sidebar-hidden' : ''}`}>
+    <div className={`board-exam-container ${isSidebarHidden ? 'sidebar-hidden' : ''} ${activeTab === 'lesson' && lessonImage ? 'lesson-workspace-active' : ''}`}>
       <aside className={`exam-sidebar ${isSidebarHidden || (activeTab === 'lesson' && lessonImage) ? 'hidden' : ''}`}>
         <div className="sidebar-header">
           <h3>Board Exam</h3>
@@ -1113,8 +1239,15 @@ const BoardExam = () => {
                   </label>
                 </div>
 
-                <button className="main-submit-btn" onClick={handleSubmitTest}>
-                  {editingTestId ? 'Update Question Paper' : 'Submit Question Paper'}
+                <button className="main-submit-btn" onClick={handleSubmitTest} disabled={isSubmittingTest}>
+                  {isSubmittingTest ? (
+                    <>
+                      <FiLoader className="animate-spin" size={18} style={{ marginRight: '8px' }} />
+                      {editingTestId ? 'Updating...' : 'Submitting...'}
+                    </>
+                  ) : (
+                    editingTestId ? 'Update Question Paper' : 'Submit Question Paper'
+                  )}
                 </button>
                 {editingTestId && (
                   <button className="cancel-btn" style={{ width: '100%', marginTop: '10px' }} onClick={() => {
@@ -1369,23 +1502,12 @@ const BoardExam = () => {
                 </div>
 
                 <div className="lesson-canvas-container">
-                  <div className="canvas-centering-box">
+                  <div className="canvas-centering-box" style={{ height: `${workspaceHeight}px`, minHeight: `${workspaceHeight}px` }}>
                     {lessonFileType.includes('pdf') ? (
-                      <object
-                        data={`${lessonImage}#view=FitH&toolbar=0&navpanes=0`}
-                        type="application/pdf"
-                        className="lesson-pdf-base"
-                        style={{ width: '100%', height: '5000px', border: 'none', display: 'block' }}
-                      >
-                        <iframe
-                          src={lessonImage}
-                          title="Lesson PDF"
-                          className="lesson-pdf-base"
-                          style={{ width: '100%', height: '5000px', border: 'none' }}
-                        >
-                          <p>Your browser does not support PDFs. <a href={lessonImage}>Download PDF</a></p>
-                        </iframe>
-                      </object>
+                      <PdfRenderer 
+                        url={lessonImage} 
+                        onHeightChange={(h) => setWorkspaceHeight(Math.max(h, 1140))} 
+                      />
                     ) : lessonFileType.startsWith('image/') ? (
                       <img
                         src={lessonImage}
@@ -1416,6 +1538,7 @@ const BoardExam = () => {
                       onMouseUp={stopLessonDrawing}
                       onMouseLeave={stopLessonDrawing}
                       className="lesson-canvas-overlay"
+                      style={{ display: 'block' }}
                     />
                   </div>
                 </div>
@@ -1470,7 +1593,7 @@ const BoardExam = () => {
                 <label>Material Type</label>
                 <select value={materialType} onChange={(e) => setMaterialType(e.target.value)} style={{ marginBottom: '15px' }}>
                   <option value="Notes">Notes / Assignment (PDF, DOCX, PPT)</option>
-                  <option value="Video">Video Recording (MP4 / Link)</option>
+                  <option value="Video">Video Recording (MP4)</option>
                 </select>
 
                 {materialType === 'Notes' ? (
@@ -1498,13 +1621,6 @@ const BoardExam = () => {
                         />
                       </label>
                     </div>
-                    <label>OR Video Link (Drive/YouTube/Meet)</label>
-                    <input
-                      type="text"
-                      value={materialVideoLink}
-                      onChange={(e) => setMaterialVideoLink(e.target.value)}
-                      placeholder="Paste link here..."
-                    />
                   </div>
                 )}
 
@@ -1578,7 +1694,17 @@ const BoardExam = () => {
                           </div>
                         </div>
                         <div className="test-actions">
-                          <button className="action-btn delete" onClick={() => handleDeleteMaterial(mat.id)} title="Delete">
+                          {(mat.filePath || mat.videoLink) && (
+                            <button
+                              className="action-btn edit"
+                              onClick={() => window.open(mat.filePath || mat.videoLink, '_blank')}
+                              title="Open Material"
+                              style={{ background: '#eef2ff', color: '#4f46e5' }}
+                            >
+                              <FiExternalLink />
+                            </button>
+                          )}
+                          <button className="action-btn delete" onClick={() => handleDeleteMaterial(mat.id || mat._id)} title="Delete">
                             <FiTrash2 />
                           </button>
                         </div>
