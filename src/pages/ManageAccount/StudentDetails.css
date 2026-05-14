@@ -1387,3 +1387,830 @@
   .student-details-modal-overlay .analysis-overall-stats { grid-template-columns: 1fr !important; }
   .student-details-modal-overlay .modal-footer button { width: 100% !important; padding: 12px !important; }
 }
+
+/* ================================================================
+   STUDENT DETAILS — COMPACT FIX
+   Paste at the very END of StudentDetails.css
+   Same compact style as ManageAccount, Support & PeopleEnquiry
+   ================================================================ */
+
+/* ── Main container ── */
+.student-details-container {
+  padding: 14px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07) !important;
+}
+
+/* ── Layout gap ── */
+.student-details-container .details-layout {
+  gap: 14px !important;
+  margin-top: 12px !important;
+}
+
+/* ================================================================
+   HEADER — compact, buttons in one row
+   ================================================================ */
+
+.student-details-container .details-header {
+  margin-bottom: 14px !important;
+  padding-bottom: 10px !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.student-details-container .details-header h2 {
+  font-size: 17px !important;
+}
+
+.student-details-container .back-button {
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+  border-radius: 5px !important;
+  gap: 5px !important;
+  transform: none !important;
+}
+
+.student-details-container .back-button:hover {
+  transform: none !important;
+}
+
+/* Button group (Analyze / Export / Refresh) */
+.student-details-container .details-header > div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  flex: 1 !important;
+  justify-content: flex-end !important;
+}
+
+.student-details-container .export-details-btn {
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+  border-radius: 5px !important;
+  gap: 4px !important;
+  width: auto !important;
+  white-space: nowrap !important;
+  transform: none !important;
+}
+
+.student-details-container .export-details-btn:hover {
+  transform: none !important;
+}
+
+/* ================================================================
+   SIDEBAR NAVIGATION — compact
+   ================================================================ */
+
+.student-details-container .navigation-sidebar {
+  width: 200px !important;
+  padding: 10px 8px !important;
+  border-radius: 8px !important;
+}
+
+.student-details-container .nav-group {
+  margin-bottom: 12px !important;
+}
+
+.student-details-container .nav-group-title {
+  font-size: 9px !important;
+  padding: 5px 8px 3px 8px !important;
+  margin-bottom: 2px !important;
+}
+
+.student-details-container .nav-btn-vertical {
+  padding: 7px 8px !important;
+  font-size: 11px !important;
+  gap: 7px !important;
+  border-radius: 6px !important;
+}
+
+.student-details-container .nav-btn-vertical:hover {
+  transform: translateX(2px) !important;
+}
+
+.student-details-container .nav-btn-vertical svg {
+  width: 13px !important;
+  height: 13px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ================================================================
+   PROFILE HEADER — compact
+   ================================================================ */
+
+.student-details-container .student-profile-header {
+  gap: 14px !important;
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  margin-bottom: 14px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
+}
+
+.student-details-container .profile-photo,
+.student-details-container .profile-avatar {
+  width: 60px !important;
+  height: 60px !important;
+  border-width: 2px !important;
+}
+
+.student-details-container .profile-avatar {
+  font-size: 26px !important;
+}
+
+.student-details-container .profile-info h1 {
+  font-size: 17px !important;
+  margin-bottom: 5px !important;
+}
+
+.student-details-container .profile-meta {
+  gap: 6px !important;
+  margin-bottom: 4px !important;
+}
+
+.student-details-container .student-email,
+.student-details-container .location-info {
+  font-size: 11px !important;
+  gap: 3px !important;
+}
+
+.student-details-container .student-email svg,
+.student-details-container .location-info svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.student-details-container .status-badge {
+  padding: 2px 8px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.student-details-container .plan-badge {
+  padding: 2px 8px !important;
+  font-size: 9px !important;
+}
+
+.student-details-container .course-pill {
+  padding: 2px 7px !important;
+  font-size: 10px !important;
+  gap: 3px !important;
+}
+
+.student-details-container .course-pill svg {
+  width: 11px !important;
+  height: 11px !important;
+}
+
+/* ================================================================
+   DETAILS GRID & CARDS — compact
+   ================================================================ */
+
+.student-details-container .details-grid {
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+}
+
+.student-details-container .details-card {
+  border-radius: 8px !important;
+}
+
+.student-details-container .details-card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+}
+
+.student-details-container .card-header {
+  padding: 10px 14px !important;
+  gap: 8px !important;
+}
+
+.student-details-container .card-header h3 {
+  font-size: 13px !important;
+}
+
+.student-details-container .card-header svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+.student-details-container .card-content {
+  padding: 10px 14px !important;
+}
+
+/* ================================================================
+   INFO ROWS — compact
+   ================================================================ */
+
+.student-details-container .info-row {
+  padding: 5px 0 !important;
+}
+
+.student-details-container .info-label {
+  font-size: 11px !important;
+  min-width: 130px !important;
+}
+
+.student-details-container .info-value {
+  font-size: 11px !important;
+  gap: 5px !important;
+}
+
+.student-details-container .info-value svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* ================================================================
+   TAGS — compact
+   ================================================================ */
+
+.student-details-container .tag-list {
+  gap: 4px !important;
+  margin-top: 2px !important;
+}
+
+.student-details-container .std-tag,
+.student-details-container .subject-tag,
+.student-details-container .course-tag {
+  padding: 1px 7px !important;
+  font-size: 10px !important;
+}
+
+/* ================================================================
+   STUDY SESSIONS — compact
+   ================================================================ */
+
+.student-details-container .sessions-summary-cards {
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+}
+
+.student-details-container .summary-card {
+  padding: 10px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+  box-shadow: none !important;
+}
+
+.student-details-container .summary-icon {
+  font-size: 22px !important;
+}
+
+.student-details-container .summary-value {
+  font-size: 18px !important;
+}
+
+.student-details-container .summary-label {
+  font-size: 10px !important;
+  margin-top: 2px !important;
+}
+
+.student-details-container .last-session-info {
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+
+.student-details-container .last-session-card {
+  padding: 10px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+}
+
+.student-details-container .last-session-icon {
+  font-size: 20px !important;
+}
+
+.student-details-container .last-session-label {
+  font-size: 10px !important;
+  margin-bottom: 2px !important;
+}
+
+.student-details-container .last-session-value {
+  font-size: 12px !important;
+}
+
+/* Activity calendar */
+.student-details-container .activity-calendar {
+  padding: 10px !important;
+  border-radius: 8px !important;
+  margin-bottom: 14px !important;
+}
+
+.student-details-container .activity-calendar h4 {
+  font-size: 13px !important;
+  margin-bottom: 10px !important;
+}
+
+.student-details-container .calendar-grid {
+  gap: 6px !important;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+}
+
+.student-details-container .calendar-day {
+  padding: 7px !important;
+  border-radius: 6px !important;
+}
+
+.student-details-container .calendar-day:hover {
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+}
+
+.student-details-container .calendar-date {
+  font-size: 10px !important;
+  margin-bottom: 2px !important;
+}
+
+.student-details-container .calendar-duration {
+  font-size: 11px !important;
+}
+
+.student-details-container .session-stats {
+  gap: 10px !important;
+  font-size: 11px !important;
+}
+
+/* ================================================================
+   PAYMENT HISTORY — compact
+   ================================================================ */
+
+.student-details-container .payment-history-list {
+  max-height: 300px !important;
+}
+
+.student-details-container .payment-item {
+  padding: 10px 12px !important;
+  border-radius: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.student-details-container .payment-header {
+  margin-bottom: 8px !important;
+  padding-bottom: 6px !important;
+}
+
+.student-details-container .payment-index {
+  font-size: 12px !important;
+}
+
+.student-details-container .payment-date {
+  font-size: 11px !important;
+}
+
+.student-details-container .payment-details {
+  gap: 5px !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+}
+
+.student-details-container .payment-row .label,
+.student-details-container .payment-row .value,
+.student-details-container .payment-row .amount,
+.student-details-container .payment-row .discount {
+  font-size: 11px !important;
+}
+
+.student-details-container .payment-action-badge {
+  padding: 1px 7px !important;
+  font-size: 9px !important;
+}
+
+.student-details-container .coupon-code {
+  font-size: 10px !important;
+  padding: 1px 6px !important;
+}
+
+.student-details-container .no-payments {
+  padding: 20px !important;
+  font-size: 12px !important;
+}
+
+/* ================================================================
+   COURSE DETAILS — compact
+   ================================================================ */
+
+.student-details-container .course-details-grid {
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+}
+
+.student-details-container .course-summary-block {
+  padding: 10px 12px !important;
+  border-radius: 6px !important;
+}
+
+.student-details-container .course-summary-title {
+  font-size: 12px !important;
+  margin-bottom: 7px !important;
+  padding-bottom: 5px !important;
+  gap: 4px !important;
+}
+
+.student-details-container .course-summary-title svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.student-details-container .course-detail-item {
+  padding: 8px 10px !important;
+  border-radius: 5px !important;
+}
+
+.student-details-container .detail-label {
+  font-size: 11px !important;
+  margin-bottom: 2px !important;
+}
+
+.student-details-container .detail-value {
+  font-size: 12px !important;
+}
+
+.student-details-container .course-mode-tag {
+  padding: 1px 6px !important;
+  font-size: 9px !important;
+}
+
+.student-details-container .course-count-badge {
+  padding: 1px 5px !important;
+  font-size: 9px !important;
+  margin-left: 4px !important;
+}
+
+/* ================================================================
+   MISC HELPERS — compact
+   ================================================================ */
+
+.student-details-container .completeness-bar {
+  height: 4px !important;
+  margin-right: 8px !important;
+}
+
+.student-details-container .completeness-text {
+  font-size: 10px !important;
+  min-width: 70px !important;
+}
+
+.student-details-container .view-photo-btn {
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+  margin-left: 6px !important;
+}
+
+.student-details-container .active-status,
+.student-details-container .inactive-status {
+  font-size: 11px !important;
+  gap: 3px !important;
+}
+
+.student-details-container .active-status svg,
+.student-details-container .inactive-status svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.student-details-container .loading-sessions,
+.student-details-container .no-sessions {
+  padding: 20px !important;
+  font-size: 12px !important;
+}
+
+/* ================================================================
+   MODAL — compact
+   ================================================================ */
+
+.student-details-modal-overlay .analysis-modal-large {
+  border-radius: 12px !important;
+  max-height: 88vh !important;
+}
+
+.student-details-modal-overlay .modal-header {
+  padding: 12px 16px !important;
+}
+
+.student-details-modal-overlay .modal-header h3 {
+  font-size: 14px !important;
+}
+
+.student-details-modal-overlay .modal-close {
+  font-size: 20px !important;
+}
+
+.student-details-modal-overlay .modal-body {
+  padding: 14px 16px !important;
+}
+
+.student-details-modal-overlay .modal-footer {
+  padding: 10px 16px !important;
+}
+
+.student-details-modal-overlay .close-modal-btn {
+  padding: 7px 16px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+}
+
+/* Analysis tabs */
+.student-details-modal-overlay .analysis-tabs {
+  padding: 10px 16px 0 16px !important;
+  gap: 5px !important;
+}
+
+.student-details-modal-overlay .tab-btn {
+  padding: 6px 12px !important;
+  font-size: 11px !important;
+  gap: 5px !important;
+  border-radius: 5px 5px 0 0 !important;
+}
+
+.student-details-modal-overlay .tab-summary {
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.student-details-modal-overlay .tab-count,
+.student-details-modal-overlay .tab-avg-score {
+  font-size: 11px !important;
+}
+
+/* Analysis overall stats */
+.student-details-modal-overlay .analysis-overall-stats {
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+  padding: 10px !important;
+  border-radius: 8px !important;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) !important;
+}
+
+.student-details-modal-overlay .analysis-overall-stats .stat-card {
+  padding: 10px !important;
+  border-radius: 8px !important;
+}
+
+.student-details-modal-overlay .analysis-overall-stats .stat-value {
+  font-size: 20px !important;
+}
+
+.student-details-modal-overlay .analysis-overall-stats .stat-label {
+  font-size: 10px !important;
+  margin-top: 2px !important;
+}
+
+/* Analysis table */
+.student-details-modal-overlay .analysis-table-wrapper {
+  border-radius: 8px !important;
+  margin-bottom: 14px !important;
+}
+
+.student-details-modal-overlay .analysis-history-table th {
+  padding: 8px 10px !important;
+  font-size: 10px !important;
+  border-bottom-width: 1px !important;
+}
+
+.student-details-modal-overlay .analysis-history-table td {
+  padding: 7px 10px !important;
+  font-size: 11px !important;
+}
+
+/* Unit breakdown */
+.student-details-modal-overlay .analysis-unit-breakdown {
+  border-radius: 8px !important;
+}
+
+.student-details-modal-overlay .analysis-unit-breakdown .breakdown-header {
+  padding: 8px 12px !important;
+}
+
+.student-details-modal-overlay .analysis-unit-breakdown .breakdown-title {
+  font-size: 12px !important;
+}
+
+.student-details-modal-overlay .analysis-unit-breakdown .breakdown-total-questions,
+.student-details-modal-overlay .analysis-unit-breakdown .breakdown-summary {
+  font-size: 10px !important;
+}
+
+.student-details-modal-overlay .lesson-breakdown-table th,
+.student-details-modal-overlay .subtopic-table th {
+  padding: 7px 10px !important;
+  font-size: 10px !important;
+}
+
+.student-details-modal-overlay .lesson-breakdown-table td,
+.student-details-modal-overlay .subtopic-table td {
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+}
+
+.student-details-modal-overlay .subtopic-container {
+  padding: 8px 12px 12px 20px !important;
+}
+
+.student-details-modal-overlay .subtopic-header h5 {
+  font-size: 11px !important;
+}
+
+.student-details-modal-overlay .subtopic-count {
+  font-size: 10px !important;
+}
+
+.student-details-modal-overlay .lesson-status-badge {
+  padding: 1px 7px !important;
+  font-size: 9px !important;
+}
+
+/* Strong / Weak topics */
+.student-details-modal-overlay .analysis-strong-topics,
+.student-details-modal-overlay .analysis-weak-topics {
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.student-details-modal-overlay .analysis-strong-topics h4,
+.student-details-modal-overlay .analysis-weak-topics h4 {
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.student-details-modal-overlay .topics-tags {
+  gap: 5px !important;
+}
+
+.student-details-modal-overlay .strong-topic-tag,
+.student-details-modal-overlay .weak-topic-tag {
+  padding: 2px 8px !important;
+  font-size: 10px !important;
+  border-radius: 12px !important;
+}
+
+.student-details-modal-overlay .perf-subj-badge {
+  padding: 2px 7px !important;
+  font-size: 10px !important;
+}
+
+.student-details-modal-overlay .perf-status-pill {
+  padding: 1px 6px !important;
+  font-size: 9px !important;
+}
+
+.student-details-modal-overlay .no-data-message {
+  padding: 30px !important;
+  font-size: 13px !important;
+}
+
+.student-details-modal-overlay .no-data-message .sub-message {
+  font-size: 11px !important;
+}
+
+.student-details-modal-overlay .perf-loading {
+  padding: 30px !important;
+  font-size: 12px !important;
+}
+
+/* ================================================================
+   MOBILE (768px and below)
+   ================================================================ */
+
+@media (max-width: 768px) {
+  .student-details-container {
+    padding: 8px !important;
+  }
+
+  /* Header stays in one row on mobile */
+  .student-details-container .details-header {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .student-details-container .back-button {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .student-details-container .export-details-btn {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  /* Sidebar pill bar */
+  .student-details-container .navigation-sidebar {
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+
+  .student-details-container .nav-btn-vertical {
+    padding: 5px 10px !important;
+    font-size: 10px !important;
+  }
+
+  /* Profile */
+  .student-details-container .student-profile-header {
+    padding: 10px !important;
+    gap: 10px !important;
+  }
+
+  .student-details-container .profile-info h1 {
+    font-size: 15px !important;
+    margin-top: 6px !important;
+  }
+
+  /* Cards */
+  .student-details-container .details-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .student-details-container .card-header {
+    padding: 8px 10px !important;
+  }
+
+  .student-details-container .card-header h3 {
+    font-size: 12px !important;
+  }
+
+  .student-details-container .card-content {
+    padding: 8px 10px !important;
+  }
+
+  .student-details-container .info-label {
+    font-size: 10px !important;
+    min-width: 110px !important;
+  }
+
+  .student-details-container .info-value {
+    font-size: 10px !important;
+  }
+
+  /* Sessions */
+  .student-details-container .sessions-summary-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .student-details-container .summary-card {
+    padding: 8px !important;
+  }
+
+  .student-details-container .summary-icon { font-size: 18px !important; }
+  .student-details-container .summary-value { font-size: 15px !important; }
+  .student-details-container .summary-label { font-size: 9px !important; }
+
+  .student-details-container .calendar-grid {
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  /* Modal */
+  .student-details-modal-overlay .analysis-modal-large {
+    border-radius: 10px 10px 0 0 !important;
+  }
+
+  .student-details-modal-overlay .analysis-overall-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .student-details-modal-overlay .tab-btn {
+    padding: 5px 10px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ================================================================
+   EXTRA SMALL (480px and below)
+   ================================================================ */
+
+@media (max-width: 480px) {
+  .student-details-container {
+    padding: 6px !important;
+  }
+
+  .student-details-container .profile-info h1 {
+    font-size: 13px !important;
+  }
+
+  .student-details-container .sessions-summary-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .student-details-container .calendar-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .student-details-modal-overlay .analysis-overall-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .student-details-modal-overlay .analysis-history-table th,
+  .student-details-modal-overlay .analysis-history-table td {
+    padding: 5px 6px !important;
+    font-size: 10px !important;
+  }
+}

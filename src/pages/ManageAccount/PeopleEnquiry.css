@@ -1233,3 +1233,785 @@
   margin-bottom: 8px;
   text-transform: uppercase;
 }
+
+/* ================================================================
+   PEOPLE ENQUIRY — COMPACT FIX
+   Paste at the very END of PeopleEnquiry.css
+   Same compact style as ManageAccount & Support
+   ================================================================ */
+
+/* ── Main container ── */
+.people-enquiry-container,
+.people-enquiry-detail {
+  padding: 14px !important;
+  min-height: unset !important;
+}
+
+/* ── Header ── */
+.enquiry-header {
+  margin-bottom: 12px !important;
+  padding-bottom: 8px !important;
+}
+
+.enquiry-header h2 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+.header-stats {
+  gap: 16px !important;
+}
+
+.stat-number {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.stat-label {
+  font-size: 10px !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* ================================================================
+   FILTER BAR — inline single row like ManageAccount
+   ================================================================ */
+
+.filter-bar {
+  background: #ffffff !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+  border: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Search box — fixed compact width, inline */
+.filter-bar .search-box {
+  position: relative !important;
+  margin-bottom: 0 !important;
+  width: 200px !important;
+  flex-shrink: 0 !important;
+}
+
+.filter-bar .search-box input {
+  width: 100% !important;
+  padding: 4px 28px 4px 28px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 5px !important;
+  font-size: 11px !important;
+  background-color: #f8fafc !important;
+  height: 26px !important;
+  transition: border-color 0.2s !important;
+  box-shadow: none !important;
+}
+
+.filter-bar .search-box input:focus {
+  outline: none !important;
+  border-color: #3498db !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.12) !important;
+}
+
+.filter-bar .search-box input::placeholder {
+  font-size: 11px !important;
+  color: #b0bec5 !important;
+}
+
+.filter-bar .search-box svg {
+  left: 7px !important;
+  width: 13px !important;
+  height: 13px !important;
+  color: #a0aec0 !important;
+}
+
+.filter-bar .clear-search {
+  right: 6px !important;
+  font-size: 13px !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Filter controls — inline row */
+.filter-bar .filter-controls {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  flex: 1 !important;
+}
+
+/* Each filter group */
+.filter-bar .filter-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  max-width: 150px !important;
+}
+
+.filter-bar .filter-group label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  color: #718096 !important;
+  margin-bottom: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+  gap: 3px !important;
+}
+
+.filter-bar .filter-group label svg {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.filter-bar .filter-group select {
+  padding: 4px 6px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 5px !important;
+  font-size: 11px !important;
+  background-color: #f8fafc !important;
+  color: #2d3748 !important;
+  height: 26px !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s !important;
+}
+
+.filter-bar .filter-group select:hover { border-color: #a0aec0 !important; }
+.filter-bar .filter-group select:focus {
+  outline: none !important;
+  border-color: #3498db !important;
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.12) !important;
+  background-color: #fff !important;
+}
+
+/* Reset button — compact, right-pinned */
+.filter-bar .reset-btn {
+  padding: 0 12px !important;
+  height: 26px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-radius: 5px !important;
+  background-color: #f1f5f9 !important;
+  color: #4a5568 !important;
+  border: 1px solid #e2e8f0 !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+  transform: none !important;
+  transition: background 0.2s !important;
+}
+
+.filter-bar .reset-btn:hover {
+  background-color: #e2e8f0 !important;
+  transform: none !important;
+}
+
+/* ================================================================
+   ENQUIRIES LIST & TABLE — compact
+   ================================================================ */
+
+.enquiries-list {
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+}
+
+.enquiries-table th {
+  padding: 8px 10px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.3px !important;
+  font-weight: 700 !important;
+}
+
+.enquiries-table td {
+  padding: 7px 10px !important;
+  font-size: 11px !important;
+  vertical-align: middle !important;
+}
+
+.enquiries-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Person info */
+.person-info {
+  gap: 8px !important;
+}
+
+.person-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.person-details {
+  gap: 2px !important;
+}
+
+.person-name {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.person-registered {
+  font-size: 9px !important;
+  padding: 1px 5px !important;
+}
+
+/* Contact info */
+.people-enquiry-container .contact-info {
+  gap: 4px !important;
+}
+
+.people-enquiry-container .contact-item {
+  font-size: 10px !important;
+  gap: 5px !important;
+}
+
+.people-enquiry-container .contact-item svg {
+  width: 11px !important;
+  height: 11px !important;
+}
+
+/* Badges */
+.category-badge,
+.status-badge {
+  padding: 2px 7px !important;
+  font-size: 9px !important;
+  border-radius: 12px !important;
+}
+
+.registered-badge,
+.not-registered-badge {
+  padding: 1px 6px !important;
+  font-size: 9px !important;
+  gap: 3px !important;
+  margin-left: 4px !important;
+}
+
+.priority-indicator {
+  padding: 1px 6px !important;
+  font-size: 9px !important;
+  margin-top: 2px !important;
+}
+
+/* Message preview */
+.message-preview {
+  font-size: 11px !important;
+  max-width: 180px !important;
+  line-height: 1.4 !important;
+}
+
+/* Date info */
+.date-info {
+  font-size: 10px !important;
+}
+
+.assigned-to {
+  font-size: 10px !important;
+  margin-top: 2px !important;
+}
+
+/* Assigned info */
+.assigned-info small {
+  font-size: 10px !important;
+  gap: 3px !important;
+}
+
+/* ================================================================
+   ACTION BUTTONS IN TABLE — compact row
+   ================================================================ */
+
+.people-enquiry-container .action-buttons {
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+}
+
+.people-enquiry-container .view-btn,
+.people-enquiry-container .quick-action-btn {
+  padding: 4px 8px !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+}
+
+.people-enquiry-container .view-btn:hover,
+.people-enquiry-container .quick-action-btn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.assign-btn-small,
+.complete-btn-small,
+.marketing-btn-small {
+  padding: 3px 7px !important;
+  font-size: 10px !important;
+  border-radius: 4px !important;
+  gap: 3px !important;
+}
+
+.assign-btn-small:hover,
+.complete-btn-small:hover,
+.marketing-btn-small:hover {
+  transform: none !important;
+}
+
+.marketing-btn-small {
+  margin-top: 4px !important;
+}
+
+.marketing-status small {
+  font-size: 10px !important;
+  gap: 3px !important;
+}
+
+/* ================================================================
+   LOADING & EMPTY STATE — compact
+   ================================================================ */
+
+.loading-state {
+  padding: 40px 20px !important;
+}
+
+.loading-state p {
+  font-size: 13px !important;
+}
+
+.people-enquiry-container .empty-state {
+  padding: 40px 20px !important;
+}
+
+.people-enquiry-container .empty-state h3 {
+  font-size: 15px !important;
+  margin-bottom: 5px !important;
+}
+
+.people-enquiry-container .empty-state p {
+  font-size: 12px !important;
+}
+
+/* ================================================================
+   DETAIL VIEW — compact
+   ================================================================ */
+
+.detail-header {
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+  padding-bottom: 8px !important;
+}
+
+.detail-header h2 {
+  font-size: 16px !important;
+}
+
+.back-button {
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+  border-radius: 5px !important;
+  gap: 3px !important;
+}
+
+.back-button:hover {
+  transform: none !important;
+}
+
+.detail-card {
+  padding: 16px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+.detail-section {
+  margin-bottom: 16px !important;
+}
+
+.detail-section h3 {
+  font-size: 13px !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 5px !important;
+}
+
+.info-grid {
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+}
+
+.info-item {
+  font-size: 12px !important;
+  gap: 6px !important;
+}
+
+.info-item strong {
+  font-size: 11px !important;
+  min-width: 80px !important;
+}
+
+.info-item svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.message-box {
+  padding: 12px !important;
+  border-radius: 6px !important;
+  gap: 8px !important;
+}
+
+.message-box p {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.message-box svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.attachment-box {
+  padding: 10px 12px !important;
+  border-radius: 6px !important;
+  gap: 8px !important;
+}
+
+.attachment-box svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.download-btn {
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+  gap: 3px !important;
+}
+
+.download-btn:hover {
+  transform: none !important;
+}
+
+.task-description,
+.notes-content {
+  padding: 8px 10px !important;
+  font-size: 11px !important;
+  border-radius: 5px !important;
+  margin-top: 5px !important;
+}
+
+/* Detail action buttons */
+.detail-section .action-buttons {
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.action-btn {
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  border-radius: 5px !important;
+}
+
+.action-btn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.info-alert {
+  padding: 8px 12px !important;
+  border-radius: 5px !important;
+  font-size: 12px !important;
+  gap: 6px !important;
+}
+
+/* ================================================================
+   ASSIGN MODAL — compact
+   ================================================================ */
+
+.assign-modal {
+  max-width: 480px !important;
+  border-radius: 10px !important;
+}
+
+.assign-modal-header {
+  padding: 12px 16px !important;
+}
+
+.assign-modal-header h2 {
+  font-size: 15px !important;
+}
+
+.assign-modal-close {
+  font-size: 18px !important;
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.assign-modal-body {
+  padding: 14px 16px !important;
+}
+
+.enquiry-preview {
+  padding: 10px 12px !important;
+  border-radius: 6px !important;
+  margin-bottom: 12px !important;
+}
+
+.enquiry-preview h4 {
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.enquiry-preview p {
+  font-size: 11px !important;
+  margin: 3px 0 !important;
+}
+
+.form-group {
+  margin-bottom: 12px !important;
+}
+
+.form-group label {
+  font-size: 10px !important;
+  margin-bottom: 4px !important;
+  gap: 5px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.form-group select,
+.form-group input,
+.form-group textarea {
+  padding: 6px 8px !important;
+  border-radius: 5px !important;
+  font-size: 12px !important;
+  border-width: 1px !important;
+}
+
+.form-group select:focus,
+.form-group input:focus,
+.form-group textarea:focus {
+  box-shadow: 0 0 0 2px rgba(52,152,219,0.12) !important;
+}
+
+.form-group textarea {
+  min-height: 55px !important;
+}
+
+.form-row {
+  gap: 10px !important;
+}
+
+/* Priority selector */
+.priority-selector {
+  gap: 5px !important;
+}
+
+.priority-option {
+  padding: 5px 8px !important;
+  font-size: 10px !important;
+  border-radius: 5px !important;
+  min-width: 55px !important;
+}
+
+.priority-option:hover:not(:disabled) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.priority-option.active {
+  transform: none !important;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5) !important;
+}
+
+/* Modal footer */
+.assign-modal-footer {
+  padding: 10px 16px !important;
+  gap: 8px !important;
+  border-radius: 0 0 10px 10px !important;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 7px 16px !important;
+  font-size: 12px !important;
+  border-radius: 5px !important;
+}
+
+.cancel-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ================================================================
+   MOBILE (768px and below)
+   ================================================================ */
+
+@media (max-width: 768px) {
+  .people-enquiry-container,
+  .people-enquiry-detail {
+    padding: 8px !important;
+  }
+
+  .enquiry-header {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .enquiry-header h2 { font-size: 15px !important; }
+
+  .header-stats {
+    gap: 12px !important;
+    justify-content: flex-end !important;
+  }
+
+  .stat-number { font-size: 16px !important; }
+  .stat-label  { font-size: 9px !important; }
+
+  /* Filter bar: stack search above, filters 2-per-row */
+  .filter-bar {
+    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 8px !important;
+  }
+
+  .filter-bar .search-box {
+    width: 100% !important;
+  }
+
+  .filter-bar .filter-controls {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .filter-bar .filter-group {
+    flex: 1 1 calc(50% - 6px) !important;
+    max-width: calc(50% - 6px) !important;
+  }
+
+  .filter-bar .filter-group label { font-size: 8px !important; }
+  .filter-bar .filter-group select {
+    font-size: 10px !important;
+    height: 24px !important;
+  }
+
+  .filter-bar .reset-btn {
+    width: 100% !important;
+    margin-left: 0 !important;
+    height: 24px !important;
+    font-size: 10px !important;
+    justify-content: center !important;
+  }
+
+  .enquiries-table th {
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+  }
+
+  .enquiries-table td {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .person-avatar {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+  }
+
+  .person-name { font-size: 11px !important; }
+
+  .people-enquiry-container .contact-item { font-size: 9px !important; }
+
+  .category-badge,
+  .status-badge {
+    padding: 1px 5px !important;
+    font-size: 8px !important;
+  }
+
+  .people-enquiry-container .view-btn,
+  .people-enquiry-container .quick-action-btn {
+    padding: 3px 6px !important;
+    font-size: 9px !important;
+  }
+
+  .assign-btn-small,
+  .complete-btn-small,
+  .marketing-btn-small {
+    padding: 3px 5px !important;
+    font-size: 9px !important;
+  }
+
+  .detail-card { padding: 10px !important; }
+  .detail-header h2 { font-size: 14px !important; }
+
+  .info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .detail-section .action-buttons {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+
+  .action-btn {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+    width: auto !important;
+  }
+
+  .assign-modal {
+    max-width: 100% !important;
+    border-radius: 10px 10px 0 0 !important;
+  }
+
+  .assign-modal-footer {
+    flex-direction: row !important;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    flex: 1 !important;
+    width: auto !important;
+    justify-content: center !important;
+  }
+
+  .priority-selector {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* ================================================================
+   EXTRA SMALL (480px and below)
+   ================================================================ */
+
+@media (max-width: 480px) {
+  .filter-bar .filter-group {
+    flex: 1 1 calc(50% - 4px) !important;
+    max-width: calc(50% - 4px) !important;
+  }
+
+  .header-stats { gap: 10px !important; }
+  .stat-number  { font-size: 14px !important; }
+
+  .people-enquiry-container .action-buttons {
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+  }
+
+  .priority-option {
+    flex: 1 1 calc(50% - 5px) !important;
+    min-width: unset !important;
+  }
+}
