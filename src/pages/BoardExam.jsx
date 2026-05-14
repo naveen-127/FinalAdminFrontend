@@ -1,13 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FiUpload, FiEdit3, FiCheckCircle, FiFileText, FiArrowLeft, FiEdit, FiTrash2, FiUsers, FiBookOpen, FiImage, FiRotateCcw, FiScissors, FiMenu, FiX, FiZap, FiCalendar, FiClock, FiChevronLeft, FiChevronRight, FiLoader, FiExternalLink } from 'react-icons/fi';
 import './BoardExam.css';
 import './ManageAccount.css';
 import { API_BASE_URL } from '../config';
 
-const PdfRenderer = ({ url, onHeightChange }) => {
+// Per-page drawing canvas renderer â€” fixes the bug where one giant canvas
+// overlay caused strokes to appear on wrong pages.
+const PdfDrawingRenderer = ({ url, lessonTool, lessonColor, lessonBrushSize, onHeightChange, onApiReady }) => {
   const containerRef = useRef(null);
   const [isRendering, setIsRendering] = useState(true);
+  const pagesRef = useRef([]); // { overlayCanvas }[]
+  const pageHistoriesRef = useRef([]); // dataURL[][]
+  const isDrawingRef = useRef(false);
+  const activePageRef = useRef(-1);
+  const toolRef = useRef(lessonTool);
+  const colorRef = useRef(lessonColor);
+  const sizeRef = useRef(lessonBrushSize);
+
+  useEffect(() => { toolRef.current = lessonTool; }, [lessonTool]);
+  useEffect(() => { colorRef.current = lessonColor; }, [lessonColor]);
+  useEffect(() => { sizeRef.current = lessonBrushSize; }, [lessonBrushSize]);
+
+  // Expose clearAll and undoLast to parent
+  useEffect(() => {
+    if (onApiReady) {
+      onApiReady({
+        clearAll: () => {
+          pagesRef.current.forEach((p, idx) => {
+            const ctx = p.overlayCanvas.getContext('2d');
+            ctx.clearRect(0, 0, p.overlayCanvas.width, p.overlayCanvas.height);
+            pageHistoriesRef.current[idx] = [];
+          });
+        },
+        undoLast: () => {
+          // Undo the last page that has history
+          for (let i = pagesRef.current.length - 1; i >= 0; i--) {
+            const hist = pageHistoriesRef.current[i];
+            if (hist && hist.length > 0) {
+              const newHist = hist.slice(0, -1);
+              pageHistoriesRef.current[i] = newHist;
+              const canvas = pagesRef.current[i].overlayCanvas;
+              const ctx = canvas.getContext('2d');
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              if (newHist.length > 0) {
+                const img = new Image();
+                img.src = newHist[newHist.length - 1];
+                img.onload = () => ctx.drawImage(img, 0, 0);
+              }
+              break;
+            }
+          }
+        }
+      });
+    }
+  });
+
+  const getCoords = (e, canvas) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
+
+  const handleDrawStart = (e, pageIdx, canvas) => {
+    isDrawingRef.current = true;
+    activePageRef.current = pageIdx;
+    const { x, y } = getCoords(e, canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    const tool = toolRef.current;
+    ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = tool === 'eraser' ? 'rgba(0,0,0,1)' : (tool === 'magic-pen' ? '#ffeb3b' : colorRef.current);
+    ctx.lineWidth = sizeRef.current;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+
+  const handleDrawMove = (e, pageIdx, canvas) => {
+    if (!isDrawingRef.current || activePageRef.current !== pageIdx) return;
+    const { x, y } = getCoords(e, canvas);
+    const ctx = canvas.getContext('2d');
+    const tool = toolRef.current;
+    ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = tool === 'eraser' ? 'rgba(0,0,0,1)' : (tool === 'magic-pen' ? '#ffeb3b' : colorRef.current);
+    ctx.lineWidth = sizeRef.current;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const handleDrawEnd = (pageIdx, canvas) => {
+    if (!isDrawingRef.current || activePageRef.current !== pageIdx) return;
+    isDrawingRef.current = false;
+    activePageRef.current = -1;
+    const tool = toolRef.current;
+    if (tool === 'magic-pen') {
+      setTimeout(() => {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const hist = pageHistoriesRef.current[pageIdx];
+        if (hist && hist.length > 0) {
+          const img = new Image();
+          img.src = hist[hist.length - 1];
+          img.onload = () => ctx.drawImage(img, 0, 0);
+        }
+      }, 4000);
+    } else {
+      const dataUrl = canvas.toDataURL();
+      pageHistoriesRef.current[pageIdx] = [...(pageHistoriesRef.current[pageIdx] || []), dataUrl].slice(-10);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -23,42 +130,61 @@ const PdfRenderer = ({ url, onHeightChange }) => {
           window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        const loadingTask = window.pdfjsLib.getDocument(url);
-        const pdf = await loadingTask.promise;
-        
+        const pdf = await window.pdfjsLib.getDocument(url).promise;
         if (!isMounted || !containerRef.current) return;
-        
+
         containerRef.current.innerHTML = '';
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 });
-          
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          canvas.style.width = '100%';
-          canvas.style.display = 'block';
-          canvas.style.marginBottom = '10px';
-          canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-          
-          await page.render({ canvasContext: context, viewport: viewport }).promise;
-          
+        pagesRef.current = [];
+        pageHistoriesRef.current = [];
+
+        for (let i = 0; i < pdf.numPages; i++) {
           if (!isMounted) return;
-          containerRef.current.appendChild(canvas);
+          const page = await pdf.getPage(i + 1);
+          const viewport = page.getViewport({ scale: 1.5 });
+
+          // Wrapper: position relative so overlay canvas can sit on top
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'position:relative;width:100%;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);background:white;';
+
+          // PDF page canvas
+          const pdfCanvas = document.createElement('canvas');
+          pdfCanvas.width = viewport.width;
+          pdfCanvas.height = viewport.height;
+          pdfCanvas.style.cssText = 'display:block;width:100%;height:auto;';
+          await page.render({ canvasContext: pdfCanvas.getContext('2d'), viewport }).promise;
+
+          // Overlay drawing canvas â€” same pixel dimensions as the PDF page
+          const overlayCanvas = document.createElement('canvas');
+          const pageIdx = i;
+          overlayCanvas.width = viewport.width;
+          overlayCanvas.height = viewport.height;
+          overlayCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;touch-action:none;';
+
+          overlayCanvas.addEventListener('mousedown', (e) => handleDrawStart(e, pageIdx, overlayCanvas));
+          overlayCanvas.addEventListener('mousemove', (e) => handleDrawMove(e, pageIdx, overlayCanvas));
+          overlayCanvas.addEventListener('mouseup', () => handleDrawEnd(pageIdx, overlayCanvas));
+          overlayCanvas.addEventListener('mouseleave', () => handleDrawEnd(pageIdx, overlayCanvas));
+          overlayCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleDrawStart(e, pageIdx, overlayCanvas); }, { passive: false });
+          overlayCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleDrawMove(e, pageIdx, overlayCanvas); }, { passive: false });
+          overlayCanvas.addEventListener('touchend', () => handleDrawEnd(pageIdx, overlayCanvas), { passive: false });
+
+          wrapper.appendChild(pdfCanvas);
+          wrapper.appendChild(overlayCanvas);
+          containerRef.current.appendChild(wrapper);
+
+          pagesRef.current.push({ overlayCanvas });
+          pageHistoriesRef.current.push([]);
         }
-        
+
         setIsRendering(false);
         if (onHeightChange && containerRef.current) {
-           onHeightChange(containerRef.current.scrollHeight);
+          onHeightChange(containerRef.current.scrollHeight);
         }
       } catch (err) {
-        console.error("Error rendering PDF:", err);
+        console.error('PDF render error:', err);
         setIsRendering(false);
       }
     };
-    
     renderPdf();
     return () => { isMounted = false; };
   }, [url]);
@@ -66,8 +192,10 @@ const PdfRenderer = ({ url, onHeightChange }) => {
   return (
     <div style={{ position: 'relative', width: '100%', minHeight: '100vh', background: '#e5e7eb' }}>
       {isRendering && (
-        <div style={{ position: 'absolute', top: '50px', left: '50%', transform: 'translateX(-50%)', background: '#064e3b', color: 'white', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-          Rendering PDF Pages...
+        <div style={{ position: 'sticky', top: '60px', zIndex: 20, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ background: '#064e3b', color: 'white', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+            Rendering PDF Pages...
+          </div>
         </div>
       )}
       <div ref={containerRef} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }} />
@@ -353,6 +481,7 @@ const BoardExam = () => {
   const [lessonColor, setLessonColor] = useState('#d32f2f');
   const [lessonBrushSize, setLessonBrushSize] = useState(3);
   const lessonCanvasRef = useRef(null);
+  const pdfDrawingApiRef = useRef(null); // exposes clearAll/undoLast for PDF mode
   const [isLessonDrawing, setIsLessonDrawing] = useState(false);
   const [lessonHistory, setLessonHistory] = useState([]);
   const lessonHistoryRef = useRef([]);
@@ -608,6 +737,12 @@ const BoardExam = () => {
   };
 
   const undoLesson = () => {
+    // PDF mode: delegate to per-page API
+    if (lessonFileType.includes('pdf') && pdfDrawingApiRef.current) {
+      pdfDrawingApiRef.current.undoLast();
+      return;
+    }
+    // Image / other mode
     if (lessonHistory.length <= 1) {
       clearLessonCanvas(false);
       setLessonHistory([]);
@@ -631,6 +766,12 @@ const BoardExam = () => {
 
   const clearLessonCanvas = (confirm = true) => {
     if (confirm && !window.confirm("Clear all drawings?")) return;
+    // PDF mode: delegate to per-page API
+    if (lessonFileType.includes('pdf') && pdfDrawingApiRef.current) {
+      pdfDrawingApiRef.current.clearAll();
+      return;
+    }
+    // Image / other mode
     const canvas = lessonCanvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext('2d');
@@ -1008,7 +1149,7 @@ const BoardExam = () => {
         fetchRecentTests();
       } else {
         const errorText = await response.text();
-        console.error('❌ Server Error Details:', errorText);
+        console.error('âŒ Server Error Details:', errorText);
         alert(`Submit failed: ${response.status}.`);
       }
     } catch (error) {
@@ -1476,7 +1617,7 @@ const BoardExam = () => {
                     </div>
                     <div className="tool-group">
                       <button className="tool-btn" onClick={() => clearLessonCanvas()} title="Clear All"><FiRotateCcw /></button>
-                      <button className="tool-btn" onClick={undoLesson} disabled={lessonHistory.length === 0} title="Undo"><FiRotateCcw style={{ transform: 'scaleX(-1)' }} /></button>
+                      <button className="tool-btn" onClick={undoLesson} disabled={!lessonFileType.includes('pdf') && lessonHistory.length === 0} title="Undo"><FiRotateCcw style={{ transform: 'scaleX(-1)' }} /></button>
                     </div>
                     <div className="tool-group">
                       <input type="color" value={lessonColor} onChange={(e) => setLessonColor(e.target.value)} className="color-picker" />
@@ -1502,44 +1643,63 @@ const BoardExam = () => {
                 </div>
 
                 <div className="lesson-canvas-container">
-                  <div className="canvas-centering-box" style={{ height: `${workspaceHeight}px`, minHeight: `${workspaceHeight}px` }}>
+                  <div className="canvas-centering-box" style={lessonFileType.includes('pdf') ? {} : { height: `${workspaceHeight}px`, minHeight: `${workspaceHeight}px` }}>
                     {lessonFileType.includes('pdf') ? (
-                      <PdfRenderer 
-                        url={lessonImage} 
-                        onHeightChange={(h) => setWorkspaceHeight(Math.max(h, 1140))} 
+                      // Per-page canvas approach: each page has its own overlay canvas
+                      // so drawing coordinates are pixel-perfect per page
+                      <PdfDrawingRenderer
+                        url={lessonImage}
+                        lessonTool={lessonTool}
+                        lessonColor={lessonColor}
+                        lessonBrushSize={lessonBrushSize}
+                        onHeightChange={(h) => setWorkspaceHeight(Math.max(h, 1140))}
+                        onApiReady={(api) => { pdfDrawingApiRef.current = api; }}
                       />
                     ) : lessonFileType.startsWith('image/') ? (
-                      <img
-                        src={lessonImage}
-                        alt="Lesson"
-                        className="lesson-img-base"
-                        onLoad={(e) => {
-                          if (lessonCanvasRef.current) {
-                            lessonCanvasRef.current.width = e.target.naturalWidth;
-                            lessonCanvasRef.current.height = e.target.naturalHeight;
-                          }
-                        }}
-                      />
+                      <>
+                        <img
+                          src={lessonImage}
+                          alt="Lesson"
+                          className="lesson-img-base"
+                          onLoad={(e) => {
+                            if (lessonCanvasRef.current) {
+                              lessonCanvasRef.current.width = e.target.naturalWidth;
+                              lessonCanvasRef.current.height = e.target.naturalHeight;
+                            }
+                          }}
+                        />
+                        <canvas
+                          ref={lessonCanvasRef}
+                          onMouseDown={startLessonDrawing}
+                          onMouseMove={lessonDraw}
+                          onMouseUp={stopLessonDrawing}
+                          onMouseLeave={stopLessonDrawing}
+                          className="lesson-canvas-overlay"
+                          style={{ display: 'block' }}
+                        />
+                      </>
                     ) : (
-                      <div className="lesson-other-file" style={{ padding: '40px', textAlign: 'center' }}>
-                        <FiFileText size={64} color="#064e3b" />
-                        <p style={{ marginTop: '15px', color: '#064e3b', fontWeight: 'bold' }}>
-                          File Uploaded: {lessonFileName || 'Document'}
-                        </p>
-                        <p style={{ fontSize: '14px', color: '#666' }}>
-                          Drawing tools are active on the overlay.
-                        </p>
-                      </div>
+                      <>
+                        <div className="lesson-other-file" style={{ padding: '40px', textAlign: 'center' }}>
+                          <FiFileText size={64} color="#064e3b" />
+                          <p style={{ marginTop: '15px', color: '#064e3b', fontWeight: 'bold' }}>
+                            File Uploaded: {lessonFileName || 'Document'}
+                          </p>
+                          <p style={{ fontSize: '14px', color: '#666' }}>
+                            Drawing tools are active on the overlay.
+                          </p>
+                        </div>
+                        <canvas
+                          ref={lessonCanvasRef}
+                          onMouseDown={startLessonDrawing}
+                          onMouseMove={lessonDraw}
+                          onMouseUp={stopLessonDrawing}
+                          onMouseLeave={stopLessonDrawing}
+                          className="lesson-canvas-overlay"
+                          style={{ display: 'block' }}
+                        />
+                      </>
                     )}
-                    <canvas
-                      ref={lessonCanvasRef}
-                      onMouseDown={startLessonDrawing}
-                      onMouseMove={lessonDraw}
-                      onMouseUp={stopLessonDrawing}
-                      onMouseLeave={stopLessonDrawing}
-                      className="lesson-canvas-overlay"
-                      style={{ display: 'block' }}
-                    />
                   </div>
                 </div>
               </div>

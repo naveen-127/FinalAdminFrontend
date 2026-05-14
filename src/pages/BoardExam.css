@@ -112,6 +112,61 @@
   /* Ensures space at the bottom of the form */
 }
 
+/* ====================================================
+   DESKTOP Lesson Workspace Containment
+   When a lesson is active, lock the outer scroll so
+   ONLY lesson-canvas-container scrolls. The toolbar
+   then stays pinned without needing position:sticky.
+   ==================================================== */
+.lesson-workspace-active.board-exam-container {
+  overflow: hidden;
+}
+
+.lesson-workspace-active>.exam-content {
+  overflow: hidden !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.lesson-workspace-active .lesson-container-full {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lesson-workspace-active .lesson-workspace {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar: just normal flow — sits at top of the flex column.
+   margin-top: 70px = 60px navbar + 10px breathing gap. */
+.lesson-workspace-active .lesson-header-bar {
+  position: relative !important;
+  top: auto !important;
+  margin-top: 70px !important;
+  margin-left: 8px !important;
+  margin-right: 8px !important;
+  flex-shrink: 0;
+  border-radius: 10px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Only the canvas container scrolls */
+.lesson-workspace-active .lesson-canvas-container {
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  height: 0;
+  /* critical: lets flex grow + overflow work */
+}
+
+
 .section-title {
   color: #064e3b;
   margin-bottom: 30px;
@@ -750,8 +805,9 @@ em.pending {
   justify-content: space-between;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  /* sticky only for non-lesson-active tabs */
   position: sticky;
-  top: 40px;
+  top: 60px;
   margin-top: 10px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1140,7 +1196,11 @@ em.pending {
 
   .lesson-workspace-active .lesson-header-bar {
     top: 0 !important;
-    /* Sidebar is hidden, toolkit goes to top */
+    /* Mobile: padding-top on container already clears the header,
+       so we only need a tiny margin here */
+    margin-top: 4px !important;
+    margin-left: 6px !important;
+    margin-right: 6px !important;
   }
 
   .tool-section {
