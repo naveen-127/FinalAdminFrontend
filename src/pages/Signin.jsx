@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate }                from 'react-router-dom';
 import './Signin.css';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { API_BASE_URL } from '../config';
+import { FaEye, FaEyeSlash }          from 'react-icons/fa';
+import { API_BASE_URL }               from '../config';
 
 const SignIn = () => {
   const [userName, setUserName] = useState('');

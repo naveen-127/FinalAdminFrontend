@@ -1,15 +1,16 @@
 /* eslint-disable no-undef */
-import React, { useEffect, useState, useCallback }                                                 from 'react';
+import React, { useEffect, useState, useCallback }                                                         from 'react';
 import './ManageAccount.css';
-import { useNavigate }                                                                             from 'react-router-dom';
-import { API_BASE_URL }                                                                            from '../config';
-import Support                                                                                     from './ManageAccount/support';
-import StudentDetails                                                                              from './ManageAccount/StudentDetails';
-import { Search, Filter, Eye, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2 } from 'lucide-react';
-import People                                                                                      from './ManageAccount/PeopleEnquiry';
-import Coupon                                                                                      from './ManageAccount/Coupon';
-import StudentForm                                                                                 from './ManageAccount/StudentForm';
-import AssignClass                                                                                 from './ManageAccount/AssignClass';
+import { useNavigate }                                                                                     from 'react-router-dom';
+import { API_BASE_URL }                                                                                    from '../config';
+import Support                                                                                             from './ManageAccount/support';
+import StudentDetails                                                                                      from './ManageAccount/StudentDetails';
+import { Search, Filter, Eye, EyeOff, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2 } from 'lucide-react';
+import People                                                                                              from './ManageAccount/PeopleEnquiry';
+import Coupon                                                                                              from './ManageAccount/Coupon';
+import StudentForm                                                                                         from './ManageAccount/StudentForm';
+import AssignClass                                                                                         from './ManageAccount/AssignClass';
+
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
@@ -136,7 +137,7 @@ const ManageAccount = () => {
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [studentFormMode, setStudentFormMode] = useState('add');
   const [editingStudent, setEditingStudent] = useState(null);
-const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -146,6 +147,8 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [assignedStudentIds, setAssignedStudentIds] = useState([]);
   const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // If you have confirm password
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -375,16 +378,29 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
         role: 'teacher',
         coursetype: teacherFormData.access.mode,
         courseName: teacherFormData.access.cardId,
-        boardType: teacherFormData.access.boardType, // New field for Tutor mode
+        boardType: teacherFormData.access.boardType,
         standards: teacherFormData.access.standards || [],
         subjects: teacherFormData.access.subjects || [],
       },
     };
 
-    const url = isEditingTeacher
-      ? `${API_BASE_URL}/updateUser/${teachers[editIndex].email}`
-      : `${API_BASE_URL}/newUser`;
-    const method = isEditingTeacher ? 'PUT' : 'POST';
+    // FIX: Safely get the email for update URL
+    let url;
+    let method;
+
+    if (isEditingTeacher && editIndex !== null && teachers[editIndex]) {
+      // Use the teacher's email from the teachers array
+      const teacherEmail = teachers[editIndex].email || teachers[editIndex].gmail;
+      if (!teacherEmail) {
+        alert('Error: Teacher email not found for update');
+        return;
+      }
+      url = `${API_BASE_URL}/updateUser/${teacherEmail}`;
+      method = 'PUT';
+    } else {
+      url = `${API_BASE_URL}/newUser`;
+      method = 'POST';
+    }
 
     fetch(url, {
       method,
@@ -399,7 +415,7 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
           getUsers();
           resetTeacherForm();
         } else if (data.status === 'failed') {
-          alert('Teacher with this email already exists!');
+          alert(data.message || 'Teacher with this email already exists!');
         } else {
           alert(data.message || 'Operation failed');
         }
@@ -447,20 +463,25 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleEditTeacher = (index) => {
     const teacher = teachers[index];
+    if (!teacher) {
+      console.error('Teacher not found at index:', index);
+      return;
+    }
+
     setEditIndex(index);
     setIsEditingTeacher(true);
     setTeacherFormData({
-      name: teacher.name || '',
-      phone: teacher.phone || '',
-      email: teacher.email || '',
-      password: teacher.password || '',
+      name: teacher.name || teacher.userName || '',
+      phone: teacher.phone || teacher.phoneNumber || '',
+      email: teacher.email || teacher.gmail || '',
+      password: '', // Don't populate password for security
       role: teacher.role || 'teacher',
       access: {
-        mode: teacher.access?.mode || '',
-        cardId: teacher.access?.cardId || '',
+        mode: teacher.access?.mode || teacher.coursetype || '',
+        cardId: teacher.access?.cardId || teacher.courseName || '',
         boardType: teacher.access?.boardType || '',
-        subjects: teacher.access?.subjects || [],
-        standards: teacher.access?.standards || [],
+        subjects: teacher.access?.subjects || teacher.subjects || [],
+        standards: teacher.access?.standards || teacher.standards || [],
       },
     });
     setActiveView('teachers');
@@ -553,33 +574,33 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-  <div className="manage-account-container">
-    <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-      <button
-        className="mobile-menu-toggle"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        <span className="hamburger-icon">
-          {sidebarOpen ? '✕' : '☰'}
-        </span>
-        <span className="menu-label">Menu</span>
-      </button>
-
-      <h3 className="sidebar-title">Admin Panel</h3>
-
-      {currentUser?.role !== 'teacher' && (
+    <div className="manage-account-container">
+      <div className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <button
-          className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveView('teachers');
-            setShowSupport(false);
-            setShowStudentDetails(false);
-            setSelectedSection('');
-          }}
+          className="mobile-menu-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          Manage Teachers
+          <span className="hamburger-icon">
+            {sidebarOpen ? '✕' : '☰'}
+          </span>
+          <span className="menu-label">Menu</span>
         </button>
-      )}
+
+        <h3 className="sidebar-title">Admin Panel</h3>
+
+        {currentUser?.role !== 'teacher' && (
+          <button
+            className={`sidebar-btn ${activeView === 'teachers' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveView('teachers');
+              setShowSupport(false);
+              setShowStudentDetails(false);
+              setSelectedSection('');
+            }}
+          >
+            Manage Teachers
+          </button>
+        )}
         <button
           className={`sidebar-btn ${activeView === 'students' ? 'active' : ''}`}
           onClick={() => {
@@ -709,13 +730,22 @@ const [sidebarOpen, setSidebarOpen] = useState(false);
                           </div>
                           <div className="form-group">
                             <label>Password *</label>
-                            <input
-                              type="password"
-                              placeholder="Password"
-                              value={teacherFormData.password}
-                              onChange={(e) => setTeacherFormData({ ...teacherFormData, password: e.target.value })}
-                              required
-                            />
+                            <div className="password-input-wrapper">
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Password"
+                                value={teacherFormData.password}
+                                onChange={(e) => setTeacherFormData({ ...teacherFormData, password: e.target.value })}
+                                required
+                              />
+                              <button
+                                type="button"
+                                className="password-eye-btn"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
                           </div>
                         </div>
 
