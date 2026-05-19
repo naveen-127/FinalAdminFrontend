@@ -1,16 +1,16 @@
 /* eslint-disable no-undef */
-import React, { useEffect, useState, useCallback }                                                         from 'react';
+import React, { useEffect, useState, useCallback }                                                                             from 'react';
 import './ManageAccount.css';
-import { useNavigate }                                                                                     from 'react-router-dom';
-import { API_BASE_URL }                                                                                    from '../config';
-import Support                                                                                             from './ManageAccount/support';
-import StudentDetails                                                                                      from './ManageAccount/StudentDetails';
-import { Search, Filter, Eye, EyeOff, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2 } from 'lucide-react';
-import People                                                                                              from './ManageAccount/PeopleEnquiry';
-import Coupon                                                                                              from './ManageAccount/Coupon';
-import StudentForm                                                                                         from './ManageAccount/StudentForm';
-import AssignClass                                                                                         from './ManageAccount/AssignClass';
-
+import { useNavigate }                                                                                                         from 'react-router-dom';
+import { API_BASE_URL }                                                                                                        from '../config';
+import Support                                                                                                                 from './ManageAccount/support';
+import StudentDetails                                                                                                          from './ManageAccount/StudentDetails';
+import { Search, Filter, Eye, EyeOff, Download, Calendar, User, Mail, Phone, GraduationCap, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
+import People                                                                                                                  from './ManageAccount/PeopleEnquiry';
+import Coupon                                                                                                                  from './ManageAccount/Coupon';
+import StudentForm                                                                                                             from './ManageAccount/StudentForm';
+import AssignClass                                                                                                             from './ManageAccount/AssignClass';
+import MediaUpload                                                                                                             from './ManageAccount/MediaUpload';
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
@@ -149,6 +149,7 @@ const ManageAccount = () => {
   const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // If you have confirm password
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -596,6 +597,7 @@ const ManageAccount = () => {
               setShowSupport(false);
               setShowStudentDetails(false);
               setSelectedSection('');
+              setShowMediaUpload(false);
             }}
           >
             Manage Teachers
@@ -608,19 +610,27 @@ const ManageAccount = () => {
             setShowSupport(false);
             setShowStudentDetails(false);
             setSelectedSection('');
+            setShowMediaUpload(false);
           }}
         >
           Manage Students
         </button>
         <button
           className={`sidebar-btn ${showSupport ? 'active' : ''}`}
-          onClick={toggleSupportView}
+          onClick={() => {
+            toggleSupportView();
+            setShowMediaUpload(false); // Add this line
+          }}
         >
           Support Tickets
         </button>
         <button
           className={`sidebar-btn ${selectedSection === 'people' ? 'active' : ''}`}
-          onClick={togglePeopleView}
+          onClick={() => {
+            toggleSupportView();
+            setShowMediaUpload(false); // Add this line
+          }}
+
         >
           People Tickets
         </button>
@@ -631,6 +641,7 @@ const ManageAccount = () => {
             setShowSupport(false);
             setActiveView('');
             setShowStudentDetails(false);
+            setShowMediaUpload(false);
           }}
         >
           Coupons
@@ -643,14 +654,30 @@ const ManageAccount = () => {
             setShowSupport(false);
             setActiveView('');
             setShowStudentDetails(false);
+            setShowMediaUpload(false);
           }}
         >
           Assign Classes
         </button>
+
+        <button
+          className={`sidebar-btn ${showMediaUpload ? 'active' : ''}`}
+          onClick={() => {
+            setShowMediaUpload(true);
+            setShowSupport(false);
+            setShowStudentDetails(false);
+            setSelectedSection('');
+          }}
+        >
+          <ImageIcon size={18} /> Media Manager
+        </button>
+
       </div>
 
       <div className="main-content">
-        {showSupport ? (
+        {showMediaUpload ? (
+          <MediaUpload />
+        ) : showSupport ? (
           <Support />
         ) : selectedSection === 'people' ? (
           <People />
