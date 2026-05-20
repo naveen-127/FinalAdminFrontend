@@ -220,6 +220,7 @@ const AdminHome = () => {
   const isSpecialSubject = (subjectName) => {
     const specials = [
       'NEET Previous Questions',
+      'JEE Previous Questions',  // Added JEE Previous Questions
       'Formulas',
       'JEE Previous Questions',
       'Previous Questions',
@@ -325,7 +326,7 @@ const AdminHome = () => {
     if (!subjectsByCard[card.id]) {
       let defaults = [];
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation'];
+        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];  // Added JEE Previous Questions
       } else if (card.id === 'neet') {
         defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
       }
@@ -340,7 +341,7 @@ const AdminHome = () => {
       let standardDefaults = [];
 
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation'];
+        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];  // Added JEE Previous Questions
         standardDefaults = ['11', '12'];
       } else if (card.id === 'neet') {
         defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
@@ -468,7 +469,7 @@ const AdminHome = () => {
                       )}
                     </select>
                     <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                      <em>Note: Subjects like "Derivation", "Formulas", "Previous Questions" don't require standard selection</em>
+                      <em>Note: Subjects like "Derivation", "Formulas", "JEE Previous Questions", "NEET Previous Questions" don't require standard selection</em>
                     </p>
                   </div>
 
