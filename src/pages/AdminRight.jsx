@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
-import katex from "katex";
-import parse from "html-react-parser";
+import { Pencil, Trash2 }                     from "lucide-react";
+import katex                                  from "katex";
+import parse                                  from "html-react-parser";
 import "katex/dist/katex.min.css";
-import { API_BASE_URL, FRONTEND_URL_AI } from "../config";
-import { FaCheckCircle } from "react-icons/fa";
+import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
+import { FaCheckCircle }                      from "react-icons/fa";
 import "./AdminRight.css";
 
 const AdminRight = () => {

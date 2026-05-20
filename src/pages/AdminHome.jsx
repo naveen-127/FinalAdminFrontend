@@ -36,8 +36,15 @@ const AdminHome = () => {
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [hasFetchedUserData, setHasFetchedUserData] = useState(false);
 
+  // ── NEW: parsed array of course names the teacher has access to ──
+  // e.g. "jee,neet" → ["jee", "neet"] | "jee" → ["jee"] | null → []
+  const courseNameList = React.useMemo(() => {
+    if (!courseName) return [];
+    if (Array.isArray(courseName)) return courseName;
+    return courseName.split(',').map(s => s.trim()).filter(Boolean);
+  }, [courseName]);
+
   useEffect(() => {
-    // Check sessionStorage first
     const storedState = sessionStorage.getItem('adminReturnState');
 
     if (storedState) {
@@ -58,18 +65,15 @@ const AdminHome = () => {
         }, 100);
       }
 
-      // Clear storage after use
       sessionStorage.removeItem('adminReturnState');
     }
 
-    // Also check location.state (in case it works)
     if (location.state?.returnToCard) {
-      // ... your existing code
+      // existing code
     }
   }, [location.state, mode, selectedCard]);
 
   useEffect(() => {
-    // Prevent multiple executions
     if (hasCheckedSession && hasFetchedUserData) return;
 
     let isMounted = true;
@@ -103,7 +107,6 @@ const AdminHome = () => {
           setCourseName(storedUser?.courseName || storedUser?.coursename);
 
           if (!hasFetchedUserData) {
-            // Fetch user data only once
             fetchUserData();
           }
           setHasCheckedSession(true);
@@ -117,7 +120,6 @@ const AdminHome = () => {
 
     checkSession();
 
-    // Cleanup function
     return () => {
       isMounted = false;
       controller.abort();
@@ -132,24 +134,16 @@ const AdminHome = () => {
         return;
       }
 
-      console.log("Fetching data for user:", currentUser);
-      console.log("Course name from user:", courseName);
-      console.log("User email/gmail:", currentUser.gmail || currentUser.email || currentUser.id);
-
-      // If user is admin, fetch all subjects
       if (currentUser.role === 'admin') {
         console.log("User is admin, skipping user data fetch");
         setHasFetchedUserData(true);
         return;
       }
 
-      // For non-admin users, fetch their specific subjects and standards
       const requestBody = {
         userId: currentUser.gmail || currentUser.email || currentUser.id,
         courseName: courseName
       };
-
-      console.log("Sending request to /getUserSubjects with:", requestBody);
 
       const response = await fetch(`${API_BASE_URL}/getUserSubjects`, {
         method: 'POST',
@@ -158,31 +152,23 @@ const AdminHome = () => {
         body: JSON.stringify(requestBody)
       });
 
-      console.log("Response status:", response.status);
-
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (data.subjects) {
-        console.log("Setting subjects:", data.subjects);
         setCurrSubjects(data.subjects);
       } else {
-        console.log("No subjects in response");
         setCurrSubjects([]);
       }
 
       if (data.standards) {
-        console.log("Setting standards:", data.standards);
         setCurrStandards(data.standards);
       } else {
-        console.log("No standards in response");
         setCurrStandards([]);
       }
 
       setHasFetchedUserData(true);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      console.error('Error details:', error.message);
     } finally {
       setLoading(false);
       setHasFetchedUserData(true);
@@ -202,7 +188,7 @@ const AdminHome = () => {
       return copy;
     });
     setCurrent('');
-    setSelectedIndex(null); 
+    setSelectedIndex(null);
   };
 
   const handleUpdate = () => {
@@ -237,9 +223,8 @@ const AdminHome = () => {
       'Formulas',
       'JEE Previous Questions',
       'Previous Questions',
-      'Derivation' // Keep this
+      'Derivation'
     ];
-    // Also handle case-insensitive matching
     return specials.some(special =>
       special.toLowerCase() === subjectName?.trim().toLowerCase()
     );
@@ -252,40 +237,28 @@ const AdminHome = () => {
 
     const selectedSubjectName = subjectsToShow[idx];
 
-    console.log("Subject selected:", selectedSubjectName);
-
-    // FIX: Use exact string comparison and trim both sides
     if (selectedSubjectName?.trim().toLowerCase() === "derivation") {
-      // Build the lab URL properly
       let labUrl = ADMIN_LAB_URL;
 
-      // Remove trailing slash if present
       if (labUrl.endsWith('/')) {
         labUrl = labUrl.slice(0, -1);
       }
 
-      // Add return parameters
       const returnUrl = encodeURIComponent(window.location.origin);
       const card = encodeURIComponent(selectedCard.id);
       const currentMode = encodeURIComponent(mode);
 
-      // Create the complete URL with query parameters
       const finalUrl = `${labUrl}/?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
 
-      console.log("Redirecting to Derivation Lab:", finalUrl);
-
-      // Store return state
       sessionStorage.setItem('adminReturnState', JSON.stringify({
         cardId: selectedCard.id,
         mode: mode
       }));
 
-      // Redirect to the lab page
       window.location.href = finalUrl;
       return;
     }
 
-    // Rest of your existing code...
     const isSpecial = isSpecialSubject(selectedSubjectName);
     const isRestrictedCard = ['jee', 'neet', 'class1-5', 'class6-12'].includes(selectedCard?.id);
 
@@ -338,7 +311,6 @@ const AdminHome = () => {
   };
 
   const handleCardClick = (card) => {
-    // Immediately redirect for Board Exam card
     if (card.id === 'class6-12') {
       navigate('/boardexam', {
         state: {
@@ -350,13 +322,12 @@ const AdminHome = () => {
       return;
     }
 
-    // Set default subjects based on card type
     if (!subjectsByCard[card.id]) {
       let defaults = [];
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation']; // ✅ ADDED Derivation to JEE
+        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation'];
       } else if (card.id === 'neet') {
-        defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation']; // ✅ ADDED Derivation to NEET
+        defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
       }
       setSubjectsByCard((prev) => ({
         ...prev,
@@ -364,16 +335,15 @@ const AdminHome = () => {
       }));
     }
 
-    // For non-admin users, if currSubjects is empty, use defaults
     if (userRole !== 'admin' && currSubjects.length === 0) {
       let defaults = [];
       let standardDefaults = [];
 
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation']; // ✅ ADDED Derivation
+        defaults = ['Physics', 'Chemistry', 'Maths', 'Derivation'];
         standardDefaults = ['11', '12'];
       } else if (card.id === 'neet') {
-        defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation']; // ✅ ADDED Derivation
+        defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
         standardDefaults = ['11', '12'];
       } else if (card.id === 'class1-5') {
         defaults = ['English', 'Maths', 'Science'];
@@ -396,6 +366,20 @@ const AdminHome = () => {
     setSelectedCard(card);
   };
 
+  // ── Helper: should this card be visible to the current (non-admin) teacher? ──
+  const isCardAccessible = (cardId) => {
+    if (userRole === 'admin') return true;
+
+    // Handle board_exam alias
+    if (
+      (courseName === 'board_exam' || courseName === 'boardexam') &&
+      cardId === 'class6-12'
+    ) return true;
+
+    // ── KEY FIX: check against the parsed list so "jee,neet" matches both ──
+    return courseNameList.includes(cardId);
+  };
+
   return (
     <div className="container">
       {mode !== null && selectedCard !== null && (
@@ -415,7 +399,6 @@ const AdminHome = () => {
                 }
 
                 return subjectsToShow.map((subj, idx) => {
-                  // NEW: A subject is only disabled if it's a restricted card, NOT a special subject, AND no standard is picked
                   const restricted = ['jee', 'neet', 'class6-12'].includes(selectedCard?.id) &&
                     !isSpecialSubject(subj) &&
                     !selectedStandard;
@@ -441,10 +424,15 @@ const AdminHome = () => {
         <div className="header">
           {mode === null ? (
             <div className="mode-switch-container">
-              {(userRole === 'admin' || courseType === 'academics' || courseType === 'tutor') && <button className="mode-button uniform" onClick={() => setMode('academics')}>Academics</button>}
-              {(userRole === 'admin' || courseType === 'professional') && <button className="mode-button uniform" onClick={() => setMode('professional')}>Professional Training</button>}
-              {userRole === 'admin' && (<button className="mode-button uniform" onClick={() => navigate('/manage-account')}>Manage Account</button>)}
-
+              {(userRole === 'admin' || courseType === 'academics' || courseType === 'tutor') && (
+                <button className="mode-button uniform" onClick={() => setMode('academics')}>Academics</button>
+              )}
+              {(userRole === 'admin' || courseType === 'professional') && (
+                <button className="mode-button uniform" onClick={() => setMode('professional')}>Professional Training</button>
+              )}
+              {userRole === 'admin' && (
+                <button className="mode-button uniform" onClick={() => navigate('/manage-account')}>Manage Account</button>
+              )}
             </div>
           ) : (
             <>
@@ -497,7 +485,6 @@ const AdminHome = () => {
                     {selectedCard === null ? (
                       <span>Select a card above to manage its subjects</span>
                     ) : (() => {
-                      // Determine which subjects to show in the dropdown
                       const dropdownSubjects = userRole === 'admin'
                         ? subjectsByCard[selectedCard.id] || []
                         : currSubjects;
@@ -524,20 +511,13 @@ const AdminHome = () => {
                     <div className="cards-wrapper">
                       <div className="cards-container">
                         {(mode === 'academics' ? academicCards : professionalCards).map((cardObj) => (
-                          userRole === 'admin' ? (
+                          // ── FIX: use isCardAccessible() for all roles ──
+                          isCardAccessible(cardObj.id) && (
                             <div key={cardObj.id} className="card" onClick={() => handleCardClick(cardObj)}>
                               <div className="card-subtitle">{cardObj.subtitle}</div>
                               <div className="card-title">{cardObj.title}</div>
                               <button className="card-button">Select</button>
                             </div>
-                          ) : (
-                            (cardObj.id === courseName || (courseName === 'board_exam' && cardObj.id === 'class6-12') || (courseName === 'boardexam' && cardObj.id === 'class6-12')) && (
-                              <div key={cardObj.id} className="card" onClick={() => handleCardClick(cardObj)}>
-                                <div className="card-subtitle">{cardObj.subtitle}</div>
-                                <div className="card-title">{cardObj.title}</div>
-                                <button className="card-button">Select</button>
-                              </div>
-                            )
                           )
                         ))}
                       </div>
@@ -553,7 +533,7 @@ const AdminHome = () => {
                           {selectedCard.title} ({selectedCard.subtitle})
                         </span>
                       </div>
-                      {/* 👇 Show Standard Select if applicable */}
+
                       {['class1-5', 'class6-12'].includes(selectedCard?.id) && (userRole === 'admin' ? subjectsByCard[selectedCard.id] || [] : currSubjects).length > 0 && (
                         <div className="standard-select">
                           <label>Select Standard:</label>
@@ -588,6 +568,7 @@ const AdminHome = () => {
                           </p>
                         </div>
                       )}
+
                       <input
                         type="text"
                         placeholder="Subject Name"

@@ -34,7 +34,6 @@ const getCardsForMode = (mode, isTeacher = false) => {
         { value: 'neet', label: 'NEET' },
       ];
     } else if (mode === 'tutor') {
-      // NEW: Tutor mode specifically shows Board Exam
       return [
         { value: 'board_exam', label: 'Board Exam' },
       ];
@@ -148,7 +147,7 @@ const ManageAccount = () => {
   const [assignedStudentIds, setAssignedStudentIds] = useState([]);
   const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // If you have confirm password
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
 
   useEffect(() => {
@@ -156,7 +155,7 @@ const ManageAccount = () => {
     if (user) {
       setCurrentUser(user);
       if (user.role === 'teacher') {
-        setActiveView('students'); // Default view for teacher
+        setActiveView('students');
         fetchAssignedStudents(user.id);
       }
     }
@@ -184,7 +183,8 @@ const ManageAccount = () => {
     email: '',
     password: '',
     role: 'teacher',
-    access: { mode: '', cardId: '', boardType: '', subjects: [], standards: [] },
+    // ── cardId is now ALWAYS an array internally ──
+    access: { mode: '', cardId: [], boardType: '', subjects: [], standards: [] },
   });
 
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
@@ -215,7 +215,10 @@ const ManageAccount = () => {
                   role: u.role || 'user',
                   access: {
                     mode: u.coursetype || '',
-                    cardId: u.courseName || '',
+                    // Normalise: stored value may be string or array — always keep as array
+                    cardId: Array.isArray(u.courseName)
+                      ? u.courseName
+                      : u.courseName ? [u.courseName] : [],
                     boardType: u.boardType || '',
                     subjects: u.subjects || [],
                     standards: u.standards || [],
@@ -234,13 +237,12 @@ const ManageAccount = () => {
 
             setTeachers(teacherAdminList);
 
-            // Replace both lists with fresh data — triggers filter useEffect
             const finalStudentList = (currentUser?.role === 'teacher')
               ? studentList.filter(s => assignedStudentIds.includes(s.id))
               : studentList;
 
             setStudents(finalStudentList);
-            setFilteredStudents(finalStudentList); // reset immediately too
+            setFilteredStudents(finalStudentList);
           });
       })
       .catch((err) => {
@@ -304,36 +306,57 @@ const ManageAccount = () => {
     setShowStudentForm(true);
   };
 
-  /**
-   * Called by StudentForm after a successful save.
-   * We close the modal first, then re-fetch with a short delay so the
-   * backend has time to commit before we GET the updated list.
-   */
   const handleStudentSaved = () => {
     setShowStudentForm(false);
     setEditingStudent(null);
-
-    // Small delay ensures the backend write is fully committed before refetch
     setTimeout(() => {
       getUsers();
     }, 400);
   };
 
-  // ── Teacher form handlers ────────────────────────────────────────────────
+  // ── Teacher card change ──────────────────────────────────────────────────
+  // For professional mode: toggle the value in the cardId array.
+  // For other modes (single-select): replace cardId with a single-item array.
   const handleTeacherCardChange = (e) => {
-    const cardId = e.target.value;
-    const defaultSubjs = teacherSubjectOptions[cardId] || [];
-    setTeacherFormData((prev) => ({
-      ...prev,
-      access: {
-        ...prev.access,
-        cardId,
-        boardType: '', // Reset board type when card changes
-        standards:
-          cardId === 'class11' ? ['11'] : cardId === 'class12' ? ['12'] : [],
-        subjects: defaultSubjs,
-      },
-    }));
+    const cardValue = e.target.value;
+    const mode = teacherFormData.access.mode;
+
+    if (mode === 'professional') {
+      // Multi-select: toggle in array
+      const current = teacherFormData.access.cardId;
+      const updated = current.includes(cardValue)
+        ? current.filter((v) => v !== cardValue)
+        : [...current, cardValue];
+
+      // Build merged subjects from all selected cards
+      const mergedSubjects = [...new Set(
+        updated.flatMap((id) => teacherSubjectOptions[id] || [])
+      )];
+
+      setTeacherFormData((prev) => ({
+        ...prev,
+        access: {
+          ...prev.access,
+          cardId: updated,
+          subjects: mergedSubjects,
+          standards: [],
+        },
+      }));
+    } else {
+      // Single-select for academics / tutor: keep as single-item array
+      const defaultSubjs = teacherSubjectOptions[cardValue] || [];
+      setTeacherFormData((prev) => ({
+        ...prev,
+        access: {
+          ...prev.access,
+          cardId: cardValue ? [cardValue] : [],
+          boardType: '',
+          standards:
+            cardValue === 'class11' ? ['11'] : cardValue === 'class12' ? ['12'] : [],
+          subjects: defaultSubjs,
+        },
+      }));
+    }
   };
 
   const handleTeacherSubjectChange = (subject) => {
@@ -355,10 +378,17 @@ const ManageAccount = () => {
   const resetTeacherForm = () => {
     setTeacherFormData({
       name: '', phone: '', email: '', password: '', role: 'teacher',
-      access: { mode: '', cardId: '', boardType: '', subjects: [], standards: [] },
+      access: { mode: '', cardId: [], boardType: '', subjects: [], standards: [] },
     });
     setIsEditingTeacher(false);
     setEditIndex(null);
+  };
+
+  // ── Always resolve cardId to a string for the API ──
+  // Backend expects a string for courseName — join with comma when multiple selected.
+  const resolveCardIdForApi = (cardIdArray) => {
+    if (!cardIdArray || cardIdArray.length === 0) return '';
+    return cardIdArray.join(','); // e.g. "jee,neet" or just "jee"
   };
 
   const handleTeacherSubmit = (e) => {
@@ -378,19 +408,18 @@ const ManageAccount = () => {
         password: teacherFormData.password,
         role: 'teacher',
         coursetype: teacherFormData.access.mode,
-        courseName: teacherFormData.access.cardId,
+        // Send array or string depending on how many are selected
+        courseName: resolveCardIdForApi(teacherFormData.access.cardId),
         boardType: teacherFormData.access.boardType,
         standards: teacherFormData.access.standards || [],
         subjects: teacherFormData.access.subjects || [],
       },
     };
 
-    // FIX: Safely get the email for update URL
     let url;
     let method;
 
     if (isEditingTeacher && editIndex !== null && teachers[editIndex]) {
-      // Use the teacher's email from the teachers array
       const teacherEmail = teachers[editIndex].email || teachers[editIndex].gmail;
       if (!teacherEmail) {
         alert('Error: Teacher email not found for update');
@@ -475,11 +504,14 @@ const ManageAccount = () => {
       name: teacher.name || teacher.userName || '',
       phone: teacher.phone || teacher.phoneNumber || '',
       email: teacher.email || teacher.gmail || '',
-      password: '', // Don't populate password for security
+      password: '',
       role: teacher.role || 'teacher',
       access: {
         mode: teacher.access?.mode || teacher.coursetype || '',
-        cardId: teacher.access?.cardId || teacher.courseName || '',
+        // Always normalise to array when loading for edit
+        cardId: Array.isArray(teacher.access?.cardId)
+          ? teacher.access.cardId
+          : teacher.access?.cardId ? [teacher.access.cardId] : [],
         boardType: teacher.access?.boardType || '',
         subjects: teacher.access?.subjects || teacher.subjects || [],
         standards: teacher.access?.standards || teacher.standards || [],
@@ -573,6 +605,13 @@ const ManageAccount = () => {
     setShowStudentDetails(false);
   };
 
+  // ── Helper: get the single non-professional cardId (string) for select value ──
+  const getSingleCardId = () => {
+    const cardId = teacherFormData.access.cardId;
+    if (Array.isArray(cardId)) return cardId[0] || '';
+    return cardId || '';
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="manage-account-container">
@@ -619,7 +658,7 @@ const ManageAccount = () => {
           className={`sidebar-btn ${showSupport ? 'active' : ''}`}
           onClick={() => {
             toggleSupportView();
-            setShowMediaUpload(false); // Add this line
+            setShowMediaUpload(false);
           }}
         >
           Support Tickets
@@ -628,9 +667,8 @@ const ManageAccount = () => {
           className={`sidebar-btn ${selectedSection === 'people' ? 'active' : ''}`}
           onClick={() => {
             toggleSupportView();
-            setShowMediaUpload(false); // Add this line
+            setShowMediaUpload(false);
           }}
-
         >
           People Tickets
         </button>
@@ -697,7 +735,6 @@ const ManageAccount = () => {
             {/* ── Teacher management view ── */}
             {activeView === 'teachers' ? (
               <div className="teachers-management">
-                {/* Existing Teachers Grid with Add Button inside header */}
                 <div className="existing-teachers-section">
                   <div className="section-header">
                     <h3>Existing Teachers</h3>
@@ -715,7 +752,7 @@ const ManageAccount = () => {
                     </div>
                   </div>
 
-                  {/* Create Teacher Form - Shown only when isEditingTeacher is true */}
+                  {/* Create / Edit Teacher Form */}
                   {isEditingTeacher && (
                     <div className="create-teacher-section">
                       <div className="form-header">
@@ -785,7 +822,7 @@ const ManageAccount = () => {
                                 const mode = e.target.value;
                                 setTeacherFormData((prev) => ({
                                   ...prev,
-                                  access: { ...prev.access, mode, cardId: '', boardType: '', subjects: [], standards: [] },
+                                  access: { ...prev.access, mode, cardId: [], boardType: '', subjects: [], standards: [] },
                                 }));
                               }}
                             >
@@ -796,23 +833,43 @@ const ManageAccount = () => {
                             </select>
                           </div>
 
+                          {/* ── Course/Class selector ── */}
                           <div className="form-group">
                             <label>Course/Class</label>
-                            <select
-                              value={teacherFormData.access.cardId}
-                              onChange={handleTeacherCardChange}
-                              disabled={!teacherFormData.access.mode}
-                            >
-                              <option value="">-- Select --</option>
-                              {getCardsForMode(teacherFormData.access.mode, true).map((card) => (
-                                <option key={card.value} value={card.value}>{card.label}</option>
-                              ))}
-                            </select>
+
+                            {/* PROFESSIONAL MODE → checkbox multi-select */}
+                            {teacherFormData.access.mode === 'professional' ? (
+                              <div className="checkbox-group" style={{ paddingTop: '6px' }}>
+                                {getCardsForMode('professional', true).map((card) => (
+                                  <label key={card.value} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      value={card.value}
+                                      checked={teacherFormData.access.cardId.includes(card.value)}
+                                      onChange={handleTeacherCardChange}
+                                    />
+                                    {card.label}
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              /* OTHER MODES → single select dropdown */
+                              <select
+                                value={getSingleCardId()}
+                                onChange={handleTeacherCardChange}
+                                disabled={!teacherFormData.access.mode}
+                              >
+                                <option value="">-- Select --</option>
+                                {getCardsForMode(teacherFormData.access.mode, true).map((card) => (
+                                  <option key={card.value} value={card.value}>{card.label}</option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         </div>
 
-                        {/* START OF HIERARCHY LOGIC FOR TUTOR/BOARD EXAM */}
-                        {teacherFormData.access.cardId === 'board_exam' && (
+                        {/* Board Exam extra fields (tutor mode) */}
+                        {teacherFormData.access.cardId.includes('board_exam') && (
                           <div className="form-row">
                             <div className="form-group">
                               <label>Board Type</label>
@@ -829,7 +886,7 @@ const ManageAccount = () => {
                         )}
 
                         {/* Classes selection for Tutor mode */}
-                        {teacherFormData.access.cardId === 'board_exam' && teacherFormData.access.boardType && (
+                        {teacherFormData.access.cardId.includes('board_exam') && teacherFormData.access.boardType && (
                           <div className="form-group full-width">
                             <label>Classes (6 - 12)</label>
                             <div className="checkbox-group">
@@ -847,12 +904,12 @@ const ManageAccount = () => {
                           </div>
                         )}
 
-                        {/* Hierarchy logic for regular Academic classes */}
-                        {(teacherFormData.access.cardId === 'class11' || teacherFormData.access.cardId === 'class12') && (
+                        {/* Standards for academic classes */}
+                        {(teacherFormData.access.cardId.includes('class11') || teacherFormData.access.cardId.includes('class12')) && (
                           <div className="form-group full-width">
                             <label>Standards</label>
                             <div className="checkbox-group">
-                              {(teacherFormData.access.cardId === 'class11' ? ['11'] : ['12']).map((std) => (
+                              {(teacherFormData.access.cardId.includes('class11') ? ['11'] : ['12']).map((std) => (
                                 <label key={std}>
                                   <input
                                     type="checkbox"
@@ -866,12 +923,17 @@ const ManageAccount = () => {
                           </div>
                         )}
 
-                        {/* All Subject Selection - Shows for any card selection */}
-                        {teacherFormData.access.cardId && (
+                        {/* Subjects — shown whenever any card is selected */}
+                        {teacherFormData.access.cardId.length > 0 && (
                           <div className="form-group full-width">
                             <label>Subjects</label>
                             <div className="subject-options">
-                              {(teacherSubjectOptions[teacherFormData.access.cardId] || teacherSubjectOptions['board_exam']).map((subject) => (
+                              {/* Merge subject options from all selected cards */}
+                              {[...new Set(
+                                teacherFormData.access.cardId.flatMap(
+                                  (id) => teacherSubjectOptions[id] || teacherSubjectOptions['board_exam']
+                                )
+                              )].map((subject) => (
                                 <label key={subject}>
                                   <input
                                     type="checkbox"
@@ -902,9 +964,9 @@ const ManageAccount = () => {
                   ) : (
                     <div className="teachers-grid">
                       {teachers.map((item, idx) => {
-                        // Safely get access data
                         const accessMode = item.access?.mode || item.coursetype || '';
-                        const accessCardId = item.access?.cardId || item.courseName || '';
+                        const accessCardId = item.access?.cardId || item.courseName || [];
+                        const accessCardIdArr = Array.isArray(accessCardId) ? accessCardId : accessCardId ? [accessCardId] : [];
                         const accessSubjects = item.access?.subjects || item.subjects || [];
                         const accessStandards = item.access?.standards || item.standards || [];
 
@@ -931,7 +993,9 @@ const ManageAccount = () => {
                               {accessMode && (
                                 <div className="teacher-access">
                                   <div className="access-badge">{accessMode}</div>
-                                  {accessCardId && <div className="access-badge">{accessCardId}</div>}
+                                  {accessCardIdArr.map((cid) => (
+                                    <div key={cid} className="access-badge">{cid}</div>
+                                  ))}
                                   {accessSubjects.length > 0 && (
                                     <div className="access-badge subjects">
                                       {accessSubjects.slice(0, 2).join(', ')}{accessSubjects.length > 2 && ` +${accessSubjects.length - 2}`}
@@ -1028,7 +1092,7 @@ const ManageAccount = () => {
                   </div>
                 </div>
 
-                {/* Student list header with Add button inside */}
+                {/* Student list header */}
                 <div className="student-list-container">
                   <div className="list-header">
                     <div className="list-header-left">
