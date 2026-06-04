@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 }                     from "lucide-react";
-import katex                                  from "katex";
-import parse                                  from "html-react-parser";
+import { Pencil, Trash2 } from "lucide-react";
+import katex from "katex";
+import parse from "html-react-parser";
 import "katex/dist/katex.min.css";
-import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
-import { FaCheckCircle }                      from "react-icons/fa";
+import { API_BASE_URL, FRONTEND_URL_AI } from "../config";
+import { FaCheckCircle } from "react-icons/fa";
 import "./AdminRight.css";
 
 const AdminRight = () => {
@@ -492,11 +492,18 @@ const AdminRight = () => {
         apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
       }
 
+      // ✅ SIMPLE FIX: Add mode: 'cors' (default) and a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       fetch(apiUrl, {
         method: "GET",
+        mode: 'cors',        // ← Explicitly set CORS mode
         credentials: "include",
+        signal: controller.signal  // ← Add abort signal for timeout
       })
         .then((resp) => {
+          clearTimeout(timeoutId);
           if (!resp.ok) {
             throw new Error(`HTTP error! status: ${resp.status}`);
           }
@@ -514,7 +521,7 @@ const AdminRight = () => {
             processedData = data.map(unit => ({
               ...unit,
               id: unit.id || unit._id,
-              isLesson: true, // Ensure isLesson is true for all special subject units
+              isLesson: true,
               standard: "special",
               units: unit.units || [],
               test: unit.test || [],
@@ -527,16 +534,22 @@ const AdminRight = () => {
             processedData = data.map(unit => ({
               ...unit,
               id: unit.id || unit._id,
-              isLesson: true // Ensure isLesson is true for normal subjects too
+              isLesson: true
             }));
           }
 
           setUnitData(processedData);
-          resolve(processedData); // Resolve with the data
+          resolve(processedData);
         })
         .catch((err) => {
-          console.error("❌ Session check failed:", err);
-          reject(err);
+          clearTimeout(timeoutId);
+          if (err.name === 'AbortError') {
+            console.error("❌ Request timeout after 30 seconds");
+            reject(new Error("Request timeout - server taking too long to respond"));
+          } else {
+            console.error("❌ Session check failed:", err);
+            reject(err);
+          }
         });
     });
   };
