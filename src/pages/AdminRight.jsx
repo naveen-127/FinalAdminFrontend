@@ -467,92 +467,60 @@ const AdminRight = () => {
 
 
   const getAllData = () => {
-    return new Promise((resolve, reject) => {
-      const start = performance.now();
+  return new Promise((resolve, reject) => {
+    const start = performance.now();
 
-      // List of subjects that don't require standard
-      const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
+    const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
+    const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
 
-      // Check if this is a special subject
-      const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
+    let apiUrl;
+    if (isSpecialSubject) {
+      apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
+    } else {
+      apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+    }
 
-      console.log("🔍 getAllData - Subject Analysis:", {
-        subjectName,
-        isSpecialSubject,
-        standard,
-        courseName
-      });
+    // ✅ USE A CORS PROXY (temporary fix)
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    const finalUrl = proxyUrl + apiUrl;
 
-      let apiUrl;
-      if (isSpecialSubject) {
-        // For special subjects: Don't send standard parameter
-        apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
-      } else {
-        // For normal subjects: Include standard
-        apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+    fetch(finalUrl, {
+      method: "GET",
+      headers: {
+        'Origin': 'https://trilokinnovations.com',
       }
-
-      // ✅ SIMPLE FIX: Add mode: 'cors' (default) and a timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);// 30 second timeout
-
-      fetch(apiUrl, {
-        method: "GET",
-        mode: 'cors',        // ← Explicitly set CORS mode
-        credentials: "include",
-        signal: controller.signal  // ← Add abort signal for timeout
+    })
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+        return resp.json();
       })
-        .then((resp) => {
-          clearTimeout(timeoutId);
-          if (!resp.ok) {
-            throw new Error(`HTTP error! status: ${resp.status}`);
-          }
-          return resp.json();
-        })
-        .then((data) => {
-          const end1 = performance.now();
-          console.log(`✅ Data fetched in ${end1 - start} ms`);
-
-          let processedData = data;
-
-          if (isSpecialSubject) {
-            console.log("🎯 Processing special subject data structure to match original subjects");
-
-            processedData = data.map(unit => ({
-              ...unit,
-              id: unit.id || unit._id,
-              isLesson: true,
-              standard: "special",
-              units: unit.units || [],
-              test: unit.test || [],
-              imageUrls: unit.imageUrls || [],
-              audioFileId: unit.audioFileId || [],
-              tags: unit.tags || []
-            }));
-          } else {
-            // Ensure ID consistency for normal subjects too
-            processedData = data.map(unit => ({
-              ...unit,
-              id: unit.id || unit._id,
-              isLesson: true
-            }));
-          }
-
-          setUnitData(processedData);
-          resolve(processedData);
-        })
-        .catch((err) => {
-          clearTimeout(timeoutId);
-          if (err.name === 'AbortError') {
-            console.error("❌ Request timeout after 30 seconds");
-            reject(new Error("Request timeout - server taking too long to respond"));
-          } else {
-            console.error("❌ Session check failed:", err);
-            reject(err);
-          }
-        });
-    });
-  };
+      .then((data) => {
+        console.log(`✅ Data fetched in ${performance.now() - start} ms`);
+        let processedData = isSpecialSubject ? data.map(unit => ({
+          ...unit,
+          id: unit.id || unit._id,
+          isLesson: true,
+          standard: "special",
+          units: unit.units || [],
+          test: unit.test || [],
+          imageUrls: unit.imageUrls || [],
+          audioFileId: unit.audioFileId || [],
+          tags: unit.tags || []
+        })) : data.map(unit => ({
+          ...unit,
+          id: unit.id || unit._id,
+          isLesson: true
+        }));
+        
+        setUnitData(processedData);
+        resolve(processedData);
+      })
+      .catch((err) => {
+        console.error("❌ Fetch failed:", err);
+        reject(err);
+      });
+  });
+};
 
   // Move lesson up/down - Updated to handle both root and nested lessons
   // Move lesson up/down - Updated for root-level units
