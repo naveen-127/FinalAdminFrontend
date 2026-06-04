@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
-import katex from "katex";
-import parse from "html-react-parser";
+import { Pencil, Trash2 }                     from "lucide-react";
+import katex                                  from "katex";
+import parse                                  from "html-react-parser";
 import "katex/dist/katex.min.css";
-import { API_BASE_URL, FRONTEND_URL_AI } from "../config";
-import { FaCheckCircle } from "react-icons/fa";
+import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
+import { FaCheckCircle }                      from "react-icons/fa";
 import "./AdminRight.css";
 
 const AdminRight = () => {
@@ -467,60 +467,79 @@ const AdminRight = () => {
 
 
   const getAllData = () => {
-  return new Promise((resolve, reject) => {
-    const start = performance.now();
+    return new Promise((resolve, reject) => {
+      const start = performance.now();
 
-    const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
-    const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
+      // List of subjects that don't require standard
+      const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
 
-    let apiUrl;
-    if (isSpecialSubject) {
-      apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
-    } else {
-      apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
-    }
+      // Check if this is a special subject
+      const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
 
-    // ✅ USE A CORS PROXY (temporary fix)
-    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-    const finalUrl = proxyUrl + apiUrl;
-
-    fetch(finalUrl, {
-      method: "GET",
-      headers: {
-        'Origin': 'https://trilokinnovations.com',
-      }
-    })
-      .then((resp) => {
-        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
-        return resp.json();
-      })
-      .then((data) => {
-        console.log(`✅ Data fetched in ${performance.now() - start} ms`);
-        let processedData = isSpecialSubject ? data.map(unit => ({
-          ...unit,
-          id: unit.id || unit._id,
-          isLesson: true,
-          standard: "special",
-          units: unit.units || [],
-          test: unit.test || [],
-          imageUrls: unit.imageUrls || [],
-          audioFileId: unit.audioFileId || [],
-          tags: unit.tags || []
-        })) : data.map(unit => ({
-          ...unit,
-          id: unit.id || unit._id,
-          isLesson: true
-        }));
-        
-        setUnitData(processedData);
-        resolve(processedData);
-      })
-      .catch((err) => {
-        console.error("❌ Fetch failed:", err);
-        reject(err);
+      console.log("🔍 getAllData - Subject Analysis:", {
+        subjectName,
+        isSpecialSubject,
+        standard,
+        courseName
       });
-  });
-};
+
+      let apiUrl;
+      if (isSpecialSubject) {
+        // For special subjects: Don't send standard parameter
+        apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
+      } else {
+        // For normal subjects: Include standard
+        apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+      }
+
+      fetch(apiUrl, {
+        method: "GET",
+        credentials: "include",
+      })
+        .then((resp) => {
+          if (!resp.ok) {
+            throw new Error(`HTTP error! status: ${resp.status}`);
+          }
+          return resp.json();
+        })
+        .then((data) => {
+          const end1 = performance.now();
+          console.log(`✅ Data fetched in ${end1 - start} ms`);
+
+          let processedData = data;
+
+          if (isSpecialSubject) {
+            console.log("🎯 Processing special subject data structure to match original subjects");
+
+            processedData = data.map(unit => ({
+              ...unit,
+              id: unit.id || unit._id,
+              isLesson: true, // Ensure isLesson is true for all special subject units
+              standard: "special",
+              units: unit.units || [],
+              test: unit.test || [],
+              imageUrls: unit.imageUrls || [],
+              audioFileId: unit.audioFileId || [],
+              tags: unit.tags || []
+            }));
+          } else {
+            // Ensure ID consistency for normal subjects too
+            processedData = data.map(unit => ({
+              ...unit,
+              id: unit.id || unit._id,
+              isLesson: true // Ensure isLesson is true for normal subjects too
+            }));
+          }
+
+          setUnitData(processedData);
+          resolve(processedData); // Resolve with the data
+        })
+        .catch((err) => {
+          console.error("❌ Session check failed:", err);
+          reject(err);
+        });
+    });
+  };
 
   // Move lesson up/down - Updated to handle both root and nested lessons
   // Move lesson up/down - Updated for root-level units
