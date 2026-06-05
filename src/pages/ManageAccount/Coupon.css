@@ -1004,3 +1004,281 @@ input[type="date"]:invalid {
     max-height: 300px;
   }
 }
+
+/* ============================================================
+   COUPON COMPACT FIX — Paste at END of your Coupon.css file
+   Same compact treatment as Support_compact_fix.css
+   ============================================================ */
+
+/* --- Container & Header --- */
+.coupon-container {
+  padding: 14px !important;
+}
+
+.coupon-header {
+  margin-bottom: 16px !important;
+  padding-bottom: 10px !important;
+}
+
+.coupon-header h2 {
+  font-size: 20px !important;
+}
+
+.coupon-header p {
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+/* --- Layout Gap --- */
+.coupon-content {
+  gap: 14px !important;
+}
+
+/* --- Form & List Sections --- */
+.coupon-form-section,
+.coupon-list-section {
+  padding: 14px !important;
+  border-radius: 8px !important;
+}
+
+/* --- Form Header --- */
+.form-header {
+  margin-bottom: 14px !important;
+  padding-bottom: 10px !important;
+}
+
+.form-header h3,
+.list-header h3 {
+  font-size: 15px !important;
+}
+
+.generated-code-display {
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+}
+
+/* --- Form Grid & Groups --- */
+.form-grid {
+  gap: 12px !important;
+}
+
+.form-group {
+  gap: 5px !important;
+}
+
+.form-group label {
+  font-size: 12px !important;
+  gap: 5px !important;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 7px 10px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  border-width: 1.5px !important;
+}
+
+.form-group textarea {
+  min-height: 60px !important;
+}
+
+.hint {
+  font-size: 11px !important;
+}
+
+/* --- Code Input & Generate Button --- */
+.code-input-group {
+  gap: 6px !important;
+}
+
+.generate-btn {
+  padding: 7px 12px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  border-width: 1.5px !important;
+}
+
+/* --- Form Actions --- */
+.form-actions {
+  gap: 8px !important;
+  margin-top: 4px !important;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  gap: 5px !important;
+}
+
+/* --- List Header & Legend --- */
+.list-header {
+  margin-bottom: 14px !important;
+  padding-bottom: 10px !important;
+}
+
+.status-legend {
+  gap: 8px !important;
+}
+
+.legend-item {
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+  border-radius: 12px !important;
+}
+
+/* --- Table --- */
+.coupon-table {
+  font-size: 12px !important;
+}
+
+.coupon-table th {
+  padding: 10px 8px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.coupon-table td {
+  padding: 10px 8px !important;
+  vertical-align: middle !important;
+}
+
+/* --- Coupon Code --- */
+.coupon-code {
+  padding: 3px 6px !important;
+  font-size: 12px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* --- Discount Badge --- */
+.discount-badge {
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  border-radius: 12px !important;
+}
+
+/* --- Status Badge --- */
+.status-badge {
+  padding: 3px 8px !important;
+  font-size: 10px !important;
+  border-radius: 12px !important;
+  gap: 3px !important;
+}
+
+/* --- Org Info & Date Info --- */
+.org-info strong {
+  font-size: 12px !important;
+}
+
+.org-info small {
+  font-size: 11px !important;
+}
+
+.date-info {
+  font-size: 11px !important;
+  gap: 2px !important;
+}
+
+.members-info {
+  gap: 2px !important;
+  font-size: 12px !important;
+}
+
+.limit-reached-hint {
+  font-size: 10px !important;
+  padding: 1px 5px !important;
+}
+
+/* --- Action Buttons --- */
+.action-buttons {
+  gap: 5px !important;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  border-radius: 4px !important;
+}
+
+/* --- Empty State --- */
+.empty-state {
+  padding: 36px 16px !important;
+}
+
+.empty-icon {
+  font-size: 36px !important;
+  margin-bottom: 12px !important;
+}
+
+.empty-state h4 {
+  font-size: 15px !important;
+}
+
+.empty-state p {
+  font-size: 12px !important;
+}
+
+/* --- Responsive Overrides (keep compact on all breakpoints) --- */
+@media (min-width: 768px) {
+  .coupon-container { padding: 16px !important; }
+  .coupon-form-section,
+  .coupon-list-section { padding: 16px !important; }
+  .coupon-table th { padding: 11px 10px !important; }
+  .coupon-table td { padding: 11px 10px !important; }
+  .save-btn, .cancel-btn { min-width: 120px !important; }
+}
+
+@media (min-width: 1024px) {
+  .coupon-container { padding: 18px !important; }
+  .coupon-form-section,
+  .coupon-list-section { padding: 18px !important; }
+}
+
+@media (min-width: 1200px) {
+  .coupon-container { padding: 20px !important; }
+}
+
+/* ============================================================
+   COUPON — Save Button Footer Overlap Fix
+   Paste at END of your Coupon.css file
+   ============================================================ */
+
+/* Give the save button area enough bottom space so it clears the footer */
+.coupon-form-section {
+  padding-bottom: 80px !important;
+}
+
+/* If form-actions / save button is fixed positioned, push it above the footer */
+.form-actions {
+  position: relative;
+  z-index: 10;
+}
+
+/* If your footer is fixed at bottom, add margin so content doesn't hide under it */
+.coupon-container {
+  margin-bottom: 60px !important;
+}
+
+/* If the save button itself is fixed/sticky at bottom */
+.save-btn {
+  position: relative;
+  z-index: 100;
+}
+
+/* ---- If your footer has a fixed/sticky class, raise save button above it ---- */
+/* Adjust the footer selector below to match your actual footer class/id */
+footer,
+.footer,
+.app-footer,
+.main-footer {
+  z-index: 50 !important;
+}
+
+.form-actions .save-btn {
+  z-index: 101 !important;
+}

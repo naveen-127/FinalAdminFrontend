@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
-import katex from "katex";
-import parse from "html-react-parser";
+import { Pencil, Trash2 }                     from "lucide-react";
+import katex                                  from "katex";
+import parse                                  from "html-react-parser";
 import "katex/dist/katex.min.css";
-import { API_BASE_URL, FRONTEND_URL_AI } from "../config";
-import { FaCheckCircle } from "react-icons/fa";
+import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
+import { FaCheckCircle }                      from "react-icons/fa";
 import "./AdminRight.css";
 
 const AdminRight = () => {
@@ -1609,7 +1609,7 @@ const AdminRight = () => {
     try {
       // You need to create this endpoint in your backend
       const res = await fetch(
-        `${API_BASE_URL}/getTest/${parentId}/${testName}`,                               
+        `${API_BASE_URL}/getTest/${parentId}/${testName}`,
         {
           method: "GET",
           credentials: "include",
@@ -5775,7 +5775,7 @@ Or just write a paragraph normally.`}
                           borderRadius: '12px',
                           fontSize: '10px',
                           cursor: 'pointer'
-                        }}                
+                        }}
                       >
                         + Equation
                       </button>
@@ -5792,7 +5792,7 @@ Or just write a paragraph normally.`}
                         }}
                         style={{
                           padding: '2px 8px',
-                          background: '#f0f0f0',
+                          background: '#000000',
                           border: '1px solid #ddd',
                           borderRadius: '12px',
                           fontSize: '10px',
@@ -5813,7 +5813,7 @@ Or just write a paragraph normally.`}
                         }}
                         style={{
                           padding: '2px 8px',
-                          background: '#f0f0f0',
+                          background: '#000000',
                           border: '1px solid #ddd',
                           borderRadius: '12px',
                           fontSize: '10px',
@@ -5821,6 +5821,28 @@ Or just write a paragraph normally.`}
                         }}
                       >
                         + practice
+                      </button>
+
+                      {/* Additional common suggestions - ADD "Problem" here */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!questionTags.includes('problem')) {
+                            const newTags = [...questionTags, 'problem'];
+                            setQuestionTags(newTags);
+                            setCurrentQuestion(prev => ({ ...prev, tags: newTags }));
+                          }
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          background: '#000000',
+                          border: '1px solid #ddd',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + Problem
                       </button>
                     </div>
                   </div>

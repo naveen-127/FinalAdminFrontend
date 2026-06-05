@@ -1,7 +1,7 @@
 // StudentForm.jsx
-import React, { useState, useEffect }                                                      from 'react';
-import { X, Save, User, Mail, Phone, Calendar, Lock, BookOpen, GraduationCap, CreditCard } from 'lucide-react';
-import { API_BASE_URL }                                                                    from '../../config';
+import React, { useState, useEffect }                                                                   from 'react';
+import { X, Save, User, Mail, Phone, Calendar, Lock, BookOpen, GraduationCap, CreditCard, Eye, EyeOff } from 'lucide-react';
+import { API_BASE_URL }                                                                                 from '../../config';
 import './StudentForm.css';
 
 const INDIA_STATES = [
@@ -34,7 +34,7 @@ const COURSE_CONFIG = {
         standards: ["11th", "12th"],
         subjects: ["Physics", "Chemistry", "Botany", "Zoology", "Maths"]
     },
-    
+
     "Class 6-12": {
         coursetype: "academics",
         courseName: "Class 6-12",
@@ -56,11 +56,11 @@ const COURSE_CONFIG = {
 };
 
 const planOptions = [
-    { value: 'trial',      label: 'Trial',       days: 10  },
-    { value: 'monthly',    label: 'Monthly',     days: 30  },
-    { value: 'quarterly',  label: 'Quarterly',   days: 90  },
+    { value: 'trial', label: 'Trial', days: 10 },
+    { value: 'monthly', label: 'Monthly', days: 30 },
+    { value: 'quarterly', label: 'Quarterly', days: 90 },
     { value: 'halfyearly', label: 'Half Yearly', days: 180 },
-    { value: 'yearly',     label: 'Yearly',      days: 365 }
+    { value: 'yearly', label: 'Yearly', days: 365 }
 ];
 
 const severityOptions = [
@@ -89,8 +89,9 @@ const buildSelectedCourse = (keys, standardsMap) => {
 
 const StudentForm = ({ student, onClose, onSave, mode }) => {
     const [selectedCourseKeys, setSelectedCourseKeys] = useState(['NEET']);
-    const [standardsMap, setStandardsMap]             = useState({ NEET: ["11th", "12th"] });
-    const [subjectsMap,  setSubjectsMap]               = useState({ NEET: [] });
+    const [standardsMap, setStandardsMap] = useState({ NEET: ["11th", "12th"] });
+    const [subjectsMap, setSubjectsMap] = useState({ NEET: [] });
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         firstname: '',
@@ -119,13 +120,13 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
     });
 
     const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState('');
+    const [error, setError] = useState('');
 
     // ── Load student data when editing ──────────────────────────────────────
     useEffect(() => {
         if (mode === 'edit' && student) {
-            let keys    = [];
-            let stdMap  = {};
+            let keys = [];
+            let stdMap = {};
             let subjMap = {};
 
             // 1. Try new format: selectedCourse = { NEET: [...], JEE: [...] }
@@ -134,7 +135,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 if (validKeys.length > 0) {
                     keys = validKeys;
                     validKeys.forEach(k => {
-                        stdMap[k]  = Array.isArray(student.selectedCourse[k])
+                        stdMap[k] = Array.isArray(student.selectedCourse[k])
                             ? student.selectedCourse[k]
                             : COURSE_CONFIG[k].standards;
                         subjMap[k] = [];
@@ -148,7 +149,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 if (parts.length > 0) {
                     keys = parts;
                     parts.forEach(p => {
-                        stdMap[p]  = student.selectedStandard?.length
+                        stdMap[p] = student.selectedStandard?.length
                             ? student.selectedStandard
                             : COURSE_CONFIG[p].standards;
                         subjMap[p] = [];
@@ -158,8 +159,8 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
 
             // 3. Final fallback
             if (keys.length === 0) {
-                keys    = ['NEET'];
-                stdMap  = { NEET: ["11th", "12th"] };
+                keys = ['NEET'];
+                stdMap = { NEET: ["11th", "12th"] };
                 subjMap = { NEET: [] };
             }
 
@@ -168,28 +169,28 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
             setSubjectsMap(subjMap);
 
             setFormData({
-                firstname:             student.firstname            || '',
-                lastname:              student.lastname             || '',
-                email:                 student.email               || '',
-                password:              student.password            || '',
-                mobile:                student.mobile              || '',
-                dob:                   student.dob                 || '',
-                gender:                student.gender              || '',
-                city:                  student.city                || '',
-                state:                 student.state               || '',
-                plan:                  student.plan                || 'monthly',
-                startDate:             student.startDate           || '',
-                endDate:               student.endDate             || '',
-                paymentId:             student.paymentId           || '',
-                paymentMethod:         student.paymentMethod       || 'Razorpay',
-                amountPaid:            student.amountPaid          || '',
-                payerId:               student.payerId             || '',
-                couponUsed:            student.couponUsed          || 'NONE',
-                discountPercentage:    student.discountPercentage  || '0',
-                discountAmount:        student.discountAmount      || '0',
+                firstname: student.firstname || '',
+                lastname: student.lastname || '',
+                email: student.email || '',
+                password: student.password || '',
+                mobile: student.mobile || '',
+                dob: student.dob || '',
+                gender: student.gender || '',
+                city: student.city || '',
+                state: student.state || '',
+                plan: student.plan || 'monthly',
+                startDate: student.startDate || '',
+                endDate: student.endDate || '',
+                paymentId: student.paymentId || '',
+                paymentMethod: student.paymentMethod || 'Razorpay',
+                amountPaid: student.amountPaid || '',
+                payerId: student.payerId || '',
+                couponUsed: student.couponUsed || 'NONE',
+                discountPercentage: student.discountPercentage || '0',
+                discountAmount: student.discountAmount || '0',
                 comfortableDailyHours: student.comfortableDailyHours || 4,
-                severity:              student.severity            || 'Competent (70%)',
-                paymentHistory:        student.paymentHistory      || [],
+                severity: student.severity || 'Competent (70%)',
+                paymentHistory: student.paymentHistory || [],
                 _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
             });
         }
@@ -211,11 +212,11 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 if (prev.length === 1) return prev;
                 const updated = prev.filter(k => k !== key);
                 setStandardsMap(sm => { const n = { ...sm }; delete n[key]; return n; });
-                setSubjectsMap(sj  => { const n = { ...sj };  delete n[key]; return n; });
+                setSubjectsMap(sj => { const n = { ...sj }; delete n[key]; return n; });
                 return updated;
             } else {
                 setStandardsMap(sm => ({ ...sm, [key]: COURSE_CONFIG[key].standards }));
-                setSubjectsMap(sj  => ({ ...sj,  [key]: [] }));
+                setSubjectsMap(sj => ({ ...sj, [key]: [] }));
                 return [...prev, key];
             }
         });
@@ -242,8 +243,8 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
     };
 
     const allSelectedStandards = [...new Set(selectedCourseKeys.flatMap(k => standardsMap[k] || []))];
-    const previewCoursetype    = deriveCourseType(selectedCourseKeys);
-    const previewCourseName    = deriveCourseName(selectedCourseKeys);
+    const previewCoursetype = deriveCourseType(selectedCourseKeys);
+    const previewCourseName = deriveCourseName(selectedCourseKeys);
 
     // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
@@ -252,22 +253,22 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
         setError('');
 
         try {
-            const selectedCourseObj  = buildSelectedCourse(selectedCourseKeys, standardsMap);
+            const selectedCourseObj = buildSelectedCourse(selectedCourseKeys, standardsMap);
             const combinedCoursetype = deriveCourseType(selectedCourseKeys);
             const combinedCourseName = deriveCourseName(selectedCourseKeys);
 
             const newHistoryEntry = {
-                date:               new Date().toISOString().split('T')[0],
-                amountPaid:         formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
-                paymentId:          formData.plan === 'trial'
-                                        ? `TRIAL_${Date.now()}`
-                                        : (formData.paymentId || `PAY-${Date.now()}`),
-                action:             formData.plan === 'trial' ? 'TRIAL_ACTIVATION' : 'UPGRADE/RENEWAL',
-                plan:               formData.plan,
+                date: new Date().toISOString().split('T')[0],
+                amountPaid: formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
+                paymentId: formData.plan === 'trial'
+                    ? `TRIAL_${Date.now()}`
+                    : (formData.paymentId || `PAY-${Date.now()}`),
+                action: formData.plan === 'trial' ? 'TRIAL_ACTIVATION' : 'UPGRADE/RENEWAL',
+                plan: formData.plan,
                 discountPercentage: formData.discountPercentage || '0',
-                couponUsed:         formData.couponUsed         || 'NONE',
-                payerId:            formData.payerId            || '',
-                discountAmount:     formData.discountAmount     || '0'
+                couponUsed: formData.couponUsed || 'NONE',
+                payerId: formData.payerId || '',
+                discountAmount: formData.discountAmount || '0'
             };
 
             let updatedPaymentHistory;
@@ -275,15 +276,15 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 updatedPaymentHistory = [newHistoryEntry];
             } else {
                 const paymentChanged =
-                    formData.amountPaid         !== (student.amountPaid         || '')    ||
-                    formData.plan               !== (student.plan               || '')    ||
-                    formData.startDate          !== (student.startDate          || '')    ||
-                    formData.endDate            !== (student.endDate            || '')    ||
-                    formData.paymentId          !== (student.paymentId          || '')    ||
-                    formData.paymentMethod      !== (student.paymentMethod      || '')    ||
-                    formData.discountPercentage !== (student.discountPercentage || '0')   ||
-                    formData.discountAmount     !== (student.discountAmount     || '0')   ||
-                    formData.couponUsed         !== (student.couponUsed         || 'NONE');
+                    formData.amountPaid !== (student.amountPaid || '') ||
+                    formData.plan !== (student.plan || '') ||
+                    formData.startDate !== (student.startDate || '') ||
+                    formData.endDate !== (student.endDate || '') ||
+                    formData.paymentId !== (student.paymentId || '') ||
+                    formData.paymentMethod !== (student.paymentMethod || '') ||
+                    formData.discountPercentage !== (student.discountPercentage || '0') ||
+                    formData.discountAmount !== (student.discountAmount || '0') ||
+                    formData.couponUsed !== (student.couponUsed || 'NONE');
 
                 updatedPaymentHistory = paymentChanged
                     ? [newHistoryEntry, ...(formData.paymentHistory || [])]
@@ -291,39 +292,39 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
             }
 
             const payload = {
-                firstname:  formData.firstname,
-                lastname:   formData.lastname,
-                email:      formData.email,
-                password:   formData.password,
-                mobile:     formData.mobile,
+                firstname: formData.firstname,
+                lastname: formData.lastname,
+                email: formData.email,
+                password: formData.password,
+                mobile: formData.mobile,
 
-                coursetype:       combinedCoursetype,
-                courseName:       combinedCourseName,
-                standards:        [],
-                subjects:         [],
-                selectedCourse:   selectedCourseObj,
+                coursetype: combinedCoursetype,
+                courseName: combinedCourseName,
+                standards: [],
+                subjects: [],
+                selectedCourse: selectedCourseObj,
                 selectedStandard: allSelectedStandards,
 
-                dob:    formData.dob,
+                dob: formData.dob,
                 gender: formData.gender,
-                city:   formData.city,
-                state:  formData.state,
+                city: formData.city,
+                state: formData.state,
 
-                plan:          formData.plan,
-                startDate:     formData.startDate,
-                endDate:       formData.endDate,
-                paymentId:     newHistoryEntry.paymentId,
+                plan: formData.plan,
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                paymentId: newHistoryEntry.paymentId,
                 paymentMethod: formData.plan === 'trial' ? 'Free Trial' : formData.paymentMethod,
-                amountPaid:    formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
-                payerId:       formData.payerId || '',
+                amountPaid: formData.plan === 'trial' ? '0' : (formData.amountPaid || '0'),
+                payerId: formData.payerId || '',
 
-                couponUsed:         formData.couponUsed         || 'NONE',
+                couponUsed: formData.couponUsed || 'NONE',
                 discountPercentage: formData.discountPercentage || '0',
-                discountAmount:     formData.discountAmount     || '0',
+                discountAmount: formData.discountAmount || '0',
 
                 comfortableDailyHours: formData.comfortableDailyHours,
-                severity:              formData.severity,
-                paymentHistory:        updatedPaymentHistory,
+                severity: formData.severity,
+                paymentHistory: updatedPaymentHistory,
                 _class: 'com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel'
             };
 
@@ -332,10 +333,10 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                 : `${API_BASE_URL}/addStudent`;
 
             const response = await fetch(url, {
-                method:      mode === 'edit' ? 'PUT' : 'POST',
+                method: mode === 'edit' ? 'PUT' : 'POST',
                 credentials: 'include',
-                headers:     { 'Content-Type': 'application/json' },
-                body:        JSON.stringify(payload)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -401,10 +402,35 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                         <div className="form-row">
                             <div className="form-group">
                                 <label><Lock size={14} /> Password *</label>
-                                <input type="password" value={formData.password}
-                                    required={mode === 'add'}
-                                    placeholder={mode === 'edit' ? 'Leave unchanged if not updating' : ''}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        required={mode === 'add'}
+                                        placeholder={mode === 'edit' ? 'Leave unchanged if not updating' : ''}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                        style={{ paddingRight: '2.5rem', width: '100%' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(prev => !prev)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '0.6rem',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: '#888',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '0'
+                                        }}
+                                        tabIndex={-1}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label><Calendar size={14} /> Date of Birth</label>
@@ -546,7 +572,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                 <input type="date" value={formData.startDate} required
                                     onChange={e => {
                                         const startDate = e.target.value;
-                                        const endDate   = calculateEndDate(startDate, formData.plan);
+                                        const endDate = calculateEndDate(startDate, formData.plan);
                                         setFormData({ ...formData, startDate, endDate });
                                     }} />
                             </div>

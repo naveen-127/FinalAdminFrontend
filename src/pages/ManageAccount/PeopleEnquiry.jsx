@@ -463,7 +463,7 @@ const PeopleEnquiry = () => {
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Search and Filter Bar */}
+      {/* Search and Filter Bar */}  
       <div className="filter-bar">
         <div className="search-box">
           <Search size={20} />
