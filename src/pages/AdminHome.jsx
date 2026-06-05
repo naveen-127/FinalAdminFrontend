@@ -239,24 +239,12 @@ const AdminHome = () => {
     const selectedSubjectName = subjectsToShow[idx];
 
     if (selectedSubjectName?.trim().toLowerCase() === "derivation") {
-      let labUrl = ADMIN_LAB_URL;
-
-      if (labUrl.endsWith('/')) {
-        labUrl = labUrl.slice(0, -1);
-      }
-
-      const returnUrl = encodeURIComponent(window.location.origin);
-      const card = encodeURIComponent(selectedCard.id);
-      const currentMode = encodeURIComponent(mode);
-
-      const finalUrl = `${labUrl}/?returnUrl=${returnUrl}&card=${card}&mode=${currentMode}`;
-
       sessionStorage.setItem('adminReturnState', JSON.stringify({
         cardId: selectedCard.id,
         mode: mode
       }));
 
-      window.location.href = finalUrl;
+      navigate('/adminhome/derivation');
       return;
     }
 
