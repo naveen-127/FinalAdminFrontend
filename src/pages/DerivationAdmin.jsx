@@ -20,8 +20,8 @@ const DerivationAdmin = () => {
 
     // 2. Determine the correct backend origin (use env variable with hostname-based fallbacks)
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const backendOrigin = import.meta.env.VITE_ADMIN_LAB_BACKEND_URL || (isDev 
-      ? 'http://localhost:5000' 
+    const backendOrigin = import.meta.env.VITE_ADMIN_LAB_BACKEND_URL || (isDev
+      ? 'http://localhost:5000'
       : 'https://d2l8p0hsuvduse.cloudfront.net');
 
     // 3. Construct the returnUrl pointing back to our parent site origin
