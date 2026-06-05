@@ -30,7 +30,7 @@ const DerivationAdmin = () => {
     const modeParam = encodeURIComponent(mode);
 
     // 4. Set the final src with query parameters so Flask app can customize itself
-    const srcUrl = `${backendOrigin}/adminhome/derivation/?returnUrl=${returnUrl}&card=${cardParam}&mode=${modeParam}`;
+    const srcUrl = `${backendOrigin}/?returnUrl=${returnUrl}&card=${cardParam}&mode=${modeParam}`;
     setIframeSrc(srcUrl);
   }, []);
 
