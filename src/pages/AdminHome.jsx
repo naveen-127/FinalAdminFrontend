@@ -2,7 +2,7 @@ import React, { useState, useEffect }  from 'react';
 import { FiBook }                      from 'react-icons/fi';
 import { useNavigate, useLocation }    from 'react-router-dom';
 import './AdminHome.css';
-import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
+import { API_BASE_URL, VITE_ADMIN_LAB_BACKEND_URL } from '../config';
 
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },

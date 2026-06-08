@@ -32,6 +32,24 @@ const DerivationAdmin = () => {
     // 4. Set the final src with query parameters so Flask app can customize itself
     const srcUrl = `${backendOrigin}/?returnUrl=${returnUrl}&card=${cardParam}&mode=${modeParam}`;
     setIframeSrc(srcUrl);
+
+    // 5. Add message listener for iframe-to-parent communication (go-back)
+    const handleMessage = (event) => {
+      // Security check could be added here, but since it's just 'go-back' we can keep it simple
+      if (event.data && event.data.type === 'go-back') {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          // Fallback if no history
+          window.location.href = '/adminhome';
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   return (
