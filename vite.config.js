@@ -6,6 +6,28 @@ export default {
   server: {
     host: '0.0.0.0', // or true to use the system's IP
     port: 5173,
+    proxy: {
+      '/adminhome/derivation': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/admin/': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ai/': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/static/': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 }
 
