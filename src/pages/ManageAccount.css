@@ -2725,3 +2725,51 @@ html { scroll-behavior: smooth; }
 .student-management-panel { gap: 6px !important; }
 .student-list-container   { border-radius: 6px !important; }
 .manage-container         { padding: 12px !important; }
+
+/* ================================================================
+   FIX: LAST STUDENT NOT HIDDEN
+   ================================================================ */
+
+/* 1. Ensure table container can grow vertically */
+.student-list-container,
+.student-table-container {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* 2. Main content needs room for footer */
+.main-content {
+  padding-bottom: 80px !important;  /* adjust if footer is taller */
+  min-height: auto !important;
+}
+
+/* 3. Manage container should not clip */
+.manage-container {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: auto !important;
+}
+
+/* 4. Table rows must be fully visible */
+.student-table tbody {
+  display: table-row-group !important;
+}
+
+.student-table tr {
+  display: table-row !important;
+}
+
+/* 5. Remove any fixed heights from parent wrappers */
+.manage-account-container,
+.main-content,
+.manage-container,
+.student-management-panel {
+  height: auto !important;
+  min-height: auto !important;
+}
+
+/* 6. If footer is fixed/overlapping, add extra bottom spacing */
+.student-list-container {
+  margin-bottom: 20px !important;
+}
