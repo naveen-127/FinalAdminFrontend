@@ -56,7 +56,7 @@ const COURSE_CONFIG = {
 };
 
 const planOptions = [
-    { value: 'trial', label: 'Trial', days: 10 },
+    // { value: 'trial', label: 'Trial', days: 10 },
     { value: 'monthly', label: 'Monthly', days: 30 },
     { value: 'quarterly', label: 'Quarterly', days: 90 },
     { value: 'halfyearly', label: 'Half Yearly', days: 180 },
