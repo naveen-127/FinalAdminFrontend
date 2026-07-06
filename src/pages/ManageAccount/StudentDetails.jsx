@@ -1,4 +1,4 @@
-// StudentDetails.jsx - Complete working version with study sessions and progress + Button Navigation (VERTICAL LAYOUT)
+// StudentDetails.jsx - Updated with nested attempts display
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Mail, Phone, Calendar, User, GraduationCap,
@@ -6,7 +6,7 @@ import {
   Percent, Tag, FileText, Shield, Layers, Target,
   CheckCircle, XCircle, AlertCircle, LogIn, LogOut, Timer, RefreshCw
 } from 'lucide-react';
-import { API_BASE_URL }                            from '../../config';
+import { API_BASE_URL } from '../../config';
 import './StudentDetails.css';
 
 const COURSE_CONFIG = {
@@ -57,6 +57,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
   const [selectedAssessmentDetail, setSelectedAssessmentDetail] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedUnits, setExpandedUnits] = useState({});
+  const [expandedAttempts, setExpandedAttempts] = useState({});
   const [analysisActiveTab, setAnalysisActiveTab] = useState('all');
 
   const [studentProgress, setStudentProgress] = useState(null);
@@ -442,6 +443,10 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
     setExpandedUnits(prev => ({ ...prev, [unitId]: !prev[unitId] }));
   };
 
+  const toggleAttemptExpand = (attemptId) => {
+    setExpandedAttempts(prev => ({ ...prev, [attemptId]: !prev[attemptId] }));
+  };
+
   const getStatusInfo = (accuracy, attempted) => {
     if (attempted === 0) return { cls: "status-neutral", text: "Not Attempted" };
     if (accuracy >= 70) return { cls: "status-good", text: "Good" };
@@ -472,7 +477,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
         <div className="breakdown-header">
           <div className="breakdown-title-section">
             <h4 className="breakdown-title">📊 Unit-wise Performance</h4>
-            <span className="breakdown-total-questions">Total Questions: <strong>{attempt.totalMarks || 0}</strong></span>
+            <span className="breakdown-total-questions">Total Marks: <strong>{attempt.totalMarks || 0}</strong></span>
           </div>
           <div className="breakdown-summary">Units: <strong>{unitNames.length}</strong></div>
         </div>
@@ -696,6 +701,118 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
     return activeSection === 'all' || activeSection === sectionId;
   };
 
+  // Helper to determine test type display name
+  const getTestTypeDisplay = (assessment) => {
+    if (assessment.originalTestType === 'Mock') {
+      if (assessment.subject === 'Full Cumulative Mock Test' || 
+          assessment.topicName === 'Full Cumulative Mock Test Mock Test') {
+        return 'Full Mock';
+      }
+      return 'Subject Mock';
+    }
+    return assessment.originalTestType || assessment.testType || 'Unknown';
+  };
+
+  // Helper to filter assessments based on active tab
+  const getFilteredAssessments = () => {
+    const allAssessments = analysisData?.assessments || [];
+    
+    if (analysisActiveTab === 'all') {
+      return allAssessments;
+    }
+    
+    return allAssessments.filter(assessment => {
+      const testType = assessment.originalTestType || assessment.testType;
+      
+      if (analysisActiveTab === 'subjectMock') {
+        return testType === 'Mock' && 
+               assessment.subject !== 'Full Cumulative Mock Test' &&
+               assessment.topicName !== 'Full Cumulative Mock Test Mock Test';
+      }
+      
+      if (analysisActiveTab === 'fullMock') {
+        return testType === 'Mock' && 
+               (assessment.subject === 'Full Cumulative Mock Test' ||
+                assessment.topicName === 'Full Cumulative Mock Test Mock Test');
+      }
+      
+      if (analysisActiveTab === 'pyq') {
+        return testType === 'PYQ';
+      }
+      
+      if (analysisActiveTab === 'formula') {
+        return testType === 'Formula' || 
+               testType === 'Formula Practice' || 
+               testType === 'Formula Assessment';
+      }
+      
+      if (analysisActiveTab === 'lesson') {
+        return testType === 'Assessment' || 
+               testType === 'Unit Test' || 
+               testType === 'Lesson' || 
+               testType === 'Practice Session' ||
+               testType === 'Topic Test' ||
+               (testType !== 'Mock' && 
+                testType !== 'PYQ' && 
+                testType !== 'Formula' && 
+                testType !== 'Formula Practice' && 
+                testType !== 'Formula Assessment' &&
+                testType !== 'FullMock' &&
+                testType !== 'SubjectMock');
+      }
+      
+      return false;
+    });
+  };
+
+  // Render attempts in a nested expandable way
+  const renderAttemptsNested = (assessment, baseId) => {
+    if (!assessment.attempts || assessment.attempts.length === 0) {
+      return renderUnitBreakdownTable(assessment, baseId);
+    }
+
+    return (
+      <div className="attempts-nested-container">
+        <div className="attempts-header">
+          <span className="attempts-count">📋 {assessment.attempts.length} Attempts</span>
+          <span className="attempts-info">Click on each attempt to expand details</span>
+        </div>
+        {assessment.attempts.map((attempt, attemptIdx) => {
+          const attemptId = `${baseId}-attempt-${attemptIdx}`;
+          const isAttemptExpanded = expandedAttempts[attemptId];
+          const attemptPercentage = calculatePercentage(attempt.scoreScored, attempt.totalMarks);
+          
+          return (
+            <div key={attemptIdx} className="attempt-nested-item">
+              <div 
+                className={`attempt-nested-header ${isAttemptExpanded ? 'expanded' : ''}`}
+                onClick={() => toggleAttemptExpand(attemptId)}
+              >
+                <span className="attempt-expand-icon">{isAttemptExpanded ? '▼' : '▶'}</span>
+                <span className="attempt-label">Attempt #{attemptIdx + 1}</span>
+                <span className="attempt-date">{attempt.timestamp ? new Date(attempt.timestamp).toLocaleString() : 'N/A'}</span>
+                <span className="attempt-score">Score: {attempt.scoreScored}/{attempt.totalMarks} ({attemptPercentage})</span>
+                <span className={`attempt-status-badge ${attempt.scoreScored >= attempt.totalMarks / 2 ? 'passed' : 'failed'}`}>
+                  {attempt.scoreScored >= attempt.totalMarks / 2 ? '✅ Passed' : '❌ Failed'}
+                </span>
+              </div>
+              {isAttemptExpanded && (
+                <div className="attempt-nested-body">
+                  <div className="attempt-quick-stats">
+                    <span>✅ Correct: <strong>{attempt.correctCount || 0}</strong></span>
+                    <span>❌ Wrong: <strong>{attempt.wrongCount || 0}</strong></span>
+                    <span>⏭️ Skipped: <strong>{attempt.unattendedCount || 0}</strong></span>
+                  </div>
+                  {renderUnitBreakdownTable(attempt, `${baseId}-${attemptIdx}`)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="student-details-container">
       <div className="details-header">
@@ -882,17 +999,37 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
               <button className={`tab-btn ${analysisActiveTab === 'all' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('all')}>
                 📋 All Tests ({analysisData?.assessments?.length || 0})
               </button>
-              <button className={`tab-btn ${analysisActiveTab === 'mock' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('mock')}>
-                🎯 Mock Tests ({analysisData?.assessments?.filter(a => a.testType === 'Mock' || a.testType === 'Full Mock' || a.testType === 'Subject Mock').length || 0})
+              <button className={`tab-btn ${analysisActiveTab === 'subjectMock' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('subjectMock')}>
+                📝 Subject Mocks ({analysisData?.assessments?.filter(a => (a.originalTestType === 'Mock' || a.testType === 'Mock') && a.subject !== 'Full Cumulative Mock Test' && a.topicName !== 'Full Cumulative Mock Test Mock Test').length || 0})
               </button>
-              <button className={`tab-btn ${analysisActiveTab === 'assessment' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('assessment')}>
-                📝 Unit Tests ({analysisData?.assessments?.filter(a => a.testType === 'Assessment' || a.testType === 'Unit Test').length || 0})
+              <button className={`tab-btn ${analysisActiveTab === 'fullMock' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('fullMock')}>
+                🎯 Full Mock ({analysisData?.assessments?.filter(a => (a.originalTestType === 'Mock' || a.testType === 'Mock') && (a.subject === 'Full Cumulative Mock Test' || a.topicName === 'Full Cumulative Mock Test Mock Test')).length || 0})
               </button>
-              <button className={`tab-btn ${analysisActiveTab === 'practice' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('practice')}>
-                ✏️ Practice Sessions ({analysisData?.assessments?.filter(a => a.testType === 'Lesson' || a.testType === 'Practice Session').length || 0})
+              <button className={`tab-btn ${analysisActiveTab === 'pyq' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('pyq')}>
+                📚 PYQ Tests ({analysisData?.assessments?.filter(a => a.originalTestType === 'PYQ' || a.testType === 'PYQ').length || 0})
               </button>
               <button className={`tab-btn ${analysisActiveTab === 'formula' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('formula')}>
-                🧪 Formula Tests ({analysisData?.assessments?.filter(a => a.testType === 'Formula Practice' || a.testType === 'Formula Assessment').length || 0})
+                🧪 Formula Tests ({analysisData?.assessments?.filter(a => a.originalTestType === 'Formula' || a.testType === 'Formula' || a.testType === 'Formula Practice' || a.testType === 'Formula Assessment').length || 0})
+              </button>
+              <button className={`tab-btn ${analysisActiveTab === 'lesson' ? 'active' : ''}`} onClick={() => setAnalysisActiveTab('lesson')}>
+                📖 Lesson Assessments ({analysisData?.assessments?.filter(a => 
+                  a.originalTestType === 'Assessment' || 
+                  a.testType === 'Assessment' || 
+                  a.testType === 'Unit Test' || 
+                  a.testType === 'Lesson' || 
+                  a.testType === 'Practice Session' ||
+                  a.testType === 'Topic Test' ||
+                  (a.originalTestType !== 'Mock' && 
+                   a.originalTestType !== 'PYQ' && 
+                   a.originalTestType !== 'Formula' &&
+                   a.originalTestType !== 'FullMock' &&
+                   a.originalTestType !== 'SubjectMock' &&
+                   a.testType !== 'Mock' && 
+                   a.testType !== 'PYQ' && 
+                   a.testType !== 'Formula' && 
+                   a.testType !== 'Formula Practice' && 
+                   a.testType !== 'Formula Assessment')
+                ).length || 0})
               </button>
             </div>
             <div className="modal-body">
@@ -906,36 +1043,16 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                 </div>
               ) : (
                 <>
-                  {analysisData.overallStats && analysisData.overallStats.totalAssessments > 0 && (
-                    <div className="analysis-overall-stats">
-                      <div className="stat-card"><div className="stat-value">{analysisData.overallStats.totalAssessments}</div><div className="stat-label">Total Tests</div></div>
-                      <div className="stat-card"><div className="stat-value">{analysisData.overallStats.totalQuestions}</div><div className="stat-label">Questions</div></div>
-                      <div className="stat-card correct"><div className="stat-value">{analysisData.overallStats.totalCorrect}</div><div className="stat-label">Correct</div></div>
-                      <div className="stat-card wrong"><div className="stat-value">{analysisData.overallStats.totalWrong}</div><div className="stat-label">Wrong</div></div>
-                      <div className="stat-card"><div className="stat-value">{analysisData.overallStats.overallPercentage}%</div><div className="stat-label">Accuracy</div></div>
-                    </div>
-                  )}
                   {(() => {
-                    let filteredAssessments = analysisData.assessments || [];
-                    if (analysisActiveTab === 'mock') {
-                      filteredAssessments = filteredAssessments.filter(a => 
-                        a.testType === 'Mock' || a.testType === 'Full Mock' || a.testType === 'Subject Mock'
-                      );
-                    } else if (analysisActiveTab === 'assessment') {
-                      filteredAssessments = filteredAssessments.filter(a => 
-                        a.testType === 'Assessment' || a.testType === 'Unit Test'
-                      );
-                    } else if (analysisActiveTab === 'practice') {
-                      filteredAssessments = filteredAssessments.filter(a => 
-                        a.testType === 'Lesson' || a.testType === 'Practice Session'
-                      );
-                    } else if (analysisActiveTab === 'formula') {
-                      filteredAssessments = filteredAssessments.filter(a => 
-                        a.testType === 'Formula Practice' || a.testType === 'Formula Assessment'
-                      );
-                    }
+                    const filteredAssessments = getFilteredAssessments();
                     return filteredAssessments.length === 0 ? (
-                      <div className="no-data-message"><p>No {analysisActiveTab} tests found for this student</p></div>
+                      <div className="no-data-message">
+                        <p>No {analysisActiveTab === 'subjectMock' ? 'Subject Mock' : 
+                              analysisActiveTab === 'fullMock' ? 'Full Mock' :
+                              analysisActiveTab === 'pyq' ? 'PYQ' :
+                              analysisActiveTab === 'formula' ? 'Formula' :
+                              analysisActiveTab === 'lesson' ? 'Lesson Assessment' : ''} tests found for this student</p>
+                      </div>
                     ) : (
                       <>
                         <div className="tab-summary">
@@ -948,10 +1065,11 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                               <tr>
                                 <th className="col-expand"></th>
                                 <th>Date & Time</th>
+                                <th>Test Type</th>
                                 <th>Subject</th>
                                 <th>Topic</th>
                                 <th>Score</th>
-                                <th>Percentage</th>
+                                <th>%</th>
                                 <th>Correct</th>
                                 <th>Wrong</th>
                                 <th>Skipped</th>
@@ -963,11 +1081,14 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                                 const isPassed = assessment.status === 'Passed';
                                 const isExpanded = expandedRows[`${analysisActiveTab}-${idx}`];
                                 const percentage = calculatePercentage(assessment.scoreScored, assessment.totalMarks);
+                                const testTypeDisplay = getTestTypeDisplay(assessment);
+                                const baseId = `${analysisActiveTab}-${idx}`;
                                 return (
                                   <React.Fragment key={idx}>
-                                    <tr onClick={() => toggleRowExpand(`${analysisActiveTab}-${idx}`)} className={isExpanded ? 'expanded-row-active' : ''}>
+                                    <tr onClick={() => toggleRowExpand(baseId)} className={isExpanded ? 'expanded-row-active' : ''}>
                                       <td className="expand-cell"><span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>{isExpanded ? '▼' : '▶'}</span></td>
                                       <td>{assessment.timestamp ? new Date(assessment.timestamp).toLocaleString() : 'N/A'}</td>
+                                      <td><span className={`test-type-badge ${testTypeDisplay.toLowerCase().replace(' ', '-')}`}>{testTypeDisplay}</span></td>
                                       <td><span className="perf-subj-badge">{assessment.subject}</span></td>
                                       <td className="db-topic-cell">{assessment.topicName}</td>
                                       <td className="score-cell"><strong>{assessment.scoreScored}</strong>/{assessment.totalMarks}</td>
@@ -979,8 +1100,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                                     </tr>
                                     {isExpanded && (
                                       <tr className="expanded-details-row">
-                                        <td colSpan="10" className="expanded-details-cell">
-                                          {renderUnitBreakdownTable(assessment, `${analysisActiveTab}-${idx}`)}
+                                        <td colSpan="11" className="expanded-details-cell">
+                                          {renderAttemptsNested(assessment, baseId)}
                                         </td>
                                       </tr>
                                     )}
@@ -1022,8 +1143,6 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
           </div>
         </div>
       )}
-
-      
     </div>
   );
 };
