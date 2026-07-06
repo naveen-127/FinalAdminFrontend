@@ -1,4 +1,4 @@
-// StudentDetails.jsx - Complete working version with nested attempts display and Passed/Stepping Stone status (80% threshold)
+// StudentDetails.jsx - Updated with nested attempts display
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Mail, Phone, Calendar, User, GraduationCap,
@@ -435,14 +435,6 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
     return `${Math.round(percentage)}%`;
   };
 
-  // Function to determine assessment status - 80% threshold for Passed
-  const getAssessmentStatus = (scoreScored, totalMarks) => {
-    if (!totalMarks || totalMarks === 0) return 'Not Attempted';
-    const percentage = (scoreScored / totalMarks) * 100;
-    if (percentage >= 80) return 'Passed';
-    return 'Stepping Stone';
-  };
-
   const toggleRowExpand = (rowId) => {
     setExpandedRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
   };
@@ -789,8 +781,6 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
           const attemptId = `${baseId}-attempt-${attemptIdx}`;
           const isAttemptExpanded = expandedAttempts[attemptId];
           const attemptPercentage = calculatePercentage(attempt.scoreScored, attempt.totalMarks);
-          const attemptStatus = getAssessmentStatus(attempt.scoreScored, attempt.totalMarks);
-          const isPassed = attemptStatus === 'Passed';
           
           return (
             <div key={attemptIdx} className="attempt-nested-item">
@@ -802,8 +792,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                 <span className="attempt-label">Attempt #{attemptIdx + 1}</span>
                 <span className="attempt-date">{attempt.timestamp ? new Date(attempt.timestamp).toLocaleString() : 'N/A'}</span>
                 <span className="attempt-score">Score: {attempt.scoreScored}/{attempt.totalMarks} ({attemptPercentage})</span>
-                <span className={`attempt-status-badge ${isPassed ? 'passed' : 'stepping-stone'}`}>
-                  {isPassed ? '✅ Passed' : '🪨 Stepping Stone'}
+                <span className={`attempt-status-badge ${attempt.scoreScored >= attempt.totalMarks / 2 ? 'passed' : 'failed'}`}>
+                  {attempt.scoreScored >= attempt.totalMarks / 2 ? '✅ Passed' : '❌ Failed'}
                 </span>
               </div>
               {isAttemptExpanded && (
@@ -1088,8 +1078,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                             </thead>
                             <tbody>
                               {filteredAssessments.map((assessment, idx) => {
-                                const statusText = getAssessmentStatus(assessment.scoreScored, assessment.totalMarks);
-                                const isPassed = statusText === 'Passed';
+                                const isPassed = assessment.status === 'Passed';
                                 const isExpanded = expandedRows[`${analysisActiveTab}-${idx}`];
                                 const percentage = calculatePercentage(assessment.scoreScored, assessment.totalMarks);
                                 const testTypeDisplay = getTestTypeDisplay(assessment);
@@ -1107,7 +1096,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                                       <td className="correct-text">{assessment.correctCount}</td>
                                       <td className="wrong-text">{assessment.wrongCount}</td>
                                       <td className="skipped-text">{assessment.unattendedCount}</td>
-                                      <td><span className={`perf-status-pill ${isPassed ? 'passed' : 'stepping-stone'}`}>{statusText}</span></td>
+                                      <td><span className={`perf-status-pill ${isPassed ? 'passed' : 'failed'}`}>{assessment.status}</span></td>
                                     </tr>
                                     {isExpanded && (
                                       <tr className="expanded-details-row">
