@@ -447,13 +447,6 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
     setExpandedAttempts(prev => ({ ...prev, [attemptId]: !prev[attemptId] }));
   };
 
-  const getStatusInfo = (accuracy, attempted) => {
-    if (attempted === 0) return { cls: "status-neutral", text: "Not Attempted" };
-    if (accuracy >= 70) return { cls: "status-good", text: "Good" };
-    if (accuracy >= 40) return { cls: "status-average", text: "Average" };
-    return { cls: "status-poor", text: "Needs Work" };
-  };
-
   const getSortedUnitNames = (unitBreakdown) => {
     if (!unitBreakdown) return [];
     const unitNames = Object.keys(unitBreakdown);
@@ -506,7 +499,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                 const unattended = unitData.unattended || 0;
                 const attempted = correct + wrong;
                 const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
-                const { cls: statusClass, text: statusText } = getStatusInfo(accuracy, attempted);
+                const isPassed = accuracy >= 80;
                 const subtopics = unitData.subtopics || {};
                 const subtopicNames = Object.keys(subtopics).sort((a, b) => {
                   const nameA = subtopics[a].originalName || a.replace(/__dot__/g, '.');
@@ -522,7 +515,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                       <td className="number-cell correct">{correct}</td>
                       <td className="number-cell wrong">{wrong}</td>
                       <td className="number-cell unattended">{unattended}</td>
-                      <td className="status-cell"><span className={`lesson-status-badge ${statusClass}`}>{statusText}</span></td>
+                      <td className="status-cell"><span className={`lesson-status-badge ${isPassed ? 'passed' : 'failed'}`}>{isPassed ? '✅ Passed' : '❌ Failed'}</span></td>
                     </tr>
                     {isUnitExpanded && subtopicNames.length > 0 && (
                       <tr className="subtopic-row">
@@ -551,8 +544,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                                     const subUnattended = subtopic.unattended || 0;
                                     const subAttempted = subCorrect + subWrong;
                                     const subAccuracy = subAttempted > 0 ? Math.round((subCorrect / subAttempted) * 100) : 0;
-                                    const { cls: subStatusClass, text: subStatusText } = getStatusInfo(subAccuracy, subAttempted);
-                                    return (<tr key={escapedSubtopic}><td className="subtopic-name-cell">{displaySubtopic}</td><td className="number-cell">{subTotal}</td><td className="number-cell correct">{subCorrect}</td><td className="number-cell wrong">{subWrong}</td><td className="number-cell unattended">{subUnattended}</td><td className="status-cell"><span className={`lesson-status-badge ${subStatusClass}`}>{subStatusText}</span></td></tr>);
+                                    const subIsPassed = subAccuracy >= 80;
+                                    return (<tr key={escapedSubtopic}><td className="subtopic-name-cell">{displaySubtopic}</td><td className="number-cell">{subTotal}</td><td className="number-cell correct">{subCorrect}</td><td className="number-cell wrong">{subWrong}</td><td className="number-cell unattended">{subUnattended}</td><td className="status-cell"><span className={`lesson-status-badge ${subIsPassed ? 'passed' : 'failed'}`}>{subIsPassed ? '✅ Passed' : '❌ Failed'}</span></td></tr>);
                                   })}
                                 </tbody>
                               </table>
@@ -781,6 +774,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
           const attemptId = `${baseId}-attempt-${attemptIdx}`;
           const isAttemptExpanded = expandedAttempts[attemptId];
           const attemptPercentage = calculatePercentage(attempt.scoreScored, attempt.totalMarks);
+          const attemptPassed = (attempt.scoreScored / attempt.totalMarks) * 100 >= 80;
           
           return (
             <div key={attemptIdx} className="attempt-nested-item">
@@ -792,8 +786,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                 <span className="attempt-label">Attempt #{attemptIdx + 1}</span>
                 <span className="attempt-date">{attempt.timestamp ? new Date(attempt.timestamp).toLocaleString() : 'N/A'}</span>
                 <span className="attempt-score">Score: {attempt.scoreScored}/{attempt.totalMarks} ({attemptPercentage})</span>
-                <span className={`attempt-status-badge ${attempt.scoreScored >= attempt.totalMarks / 2 ? 'passed' : 'failed'}`}>
-                  {attempt.scoreScored >= attempt.totalMarks / 2 ? '✅ Passed' : '❌ Failed'}
+                <span className={`attempt-status-badge ${attemptPassed ? 'passed' : 'failed'}`}>
+                  {attemptPassed ? '✅ Passed' : '❌ Failed'}
                 </span>
               </div>
               {isAttemptExpanded && (
@@ -1078,7 +1072,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                             </thead>
                             <tbody>
                               {filteredAssessments.map((assessment, idx) => {
-                                const isPassed = assessment.status === 'Passed';
+                                const isPassed = (assessment.scoreScored / assessment.totalMarks) * 100 >= 80;
                                 const isExpanded = expandedRows[`${analysisActiveTab}-${idx}`];
                                 const percentage = calculatePercentage(assessment.scoreScored, assessment.totalMarks);
                                 const testTypeDisplay = getTestTypeDisplay(assessment);
@@ -1096,7 +1090,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                                       <td className="correct-text">{assessment.correctCount}</td>
                                       <td className="wrong-text">{assessment.wrongCount}</td>
                                       <td className="skipped-text">{assessment.unattendedCount}</td>
-                                      <td><span className={`perf-status-pill ${isPassed ? 'passed' : 'failed'}`}>{assessment.status}</span></td>
+                                      <td><span className={`perf-status-pill ${isPassed ? 'passed' : 'failed'}`}>{isPassed ? 'Passed' : 'Failed'}</span></td>
                                     </tr>
                                     {isExpanded && (
                                       <tr className="expanded-details-row">
