@@ -774,7 +774,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
           const attemptId = `${baseId}-attempt-${attemptIdx}`;
           const isAttemptExpanded = expandedAttempts[attemptId];
           const attemptPercentage = calculatePercentage(attempt.scoreScored, attempt.totalMarks);
-          const attemptPassed = (attempt.scoreScored / attempt.totalMarks) * 100 >= 80;
+          // Use status from database
+          const attemptPassed = attempt.status === 'pass';
           
           return (
             <div key={attemptIdx} className="attempt-nested-item">
@@ -1072,7 +1073,8 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
                             </thead>
                             <tbody>
                               {filteredAssessments.map((assessment, idx) => {
-                                const isPassed = (assessment.scoreScored / assessment.totalMarks) * 100 >= 80;
+                                // Use status from database
+                                const isPassed = assessment.status === 'pass';
                                 const isExpanded = expandedRows[`${analysisActiveTab}-${idx}`];
                                 const percentage = calculatePercentage(assessment.scoreScored, assessment.totalMarks);
                                 const testTypeDisplay = getTestTypeDisplay(assessment);
@@ -1133,7 +1135,7 @@ const StudentDetails = ({ student, onBack, formatDate }) => {
             </div>
             <div className="modal-footer">
               <button className="close-modal-btn" onClick={() => setShowAnalysisModal(false)}>Close</button>
-            </div>
+            </div>    
           </div>
         </div>
       )}
