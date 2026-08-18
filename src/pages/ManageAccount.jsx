@@ -11,6 +11,7 @@ import Coupon                                                                   
 import StudentForm                                                                                                             from './ManageAccount/StudentForm';
 import AssignClass                                                                                                             from './ManageAccount/AssignClass';
 import MediaUpload                                                                                                             from './ManageAccount/MediaUpload';
+import Visitors                                                                                                                from './ManageAccount/Visitors'; // Import the Visitors component
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
@@ -149,6 +150,7 @@ const ManageAccount = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [showVisitors, setShowVisitors] = useState(false); // State for Visitors view
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -596,6 +598,7 @@ const ManageAccount = () => {
     setSelectedSection(showSupport ? '' : 'support');
     setActiveView('');
     setShowStudentDetails(false);
+    setShowVisitors(false);
   };
 
   const togglePeopleView = () => {
@@ -603,6 +606,16 @@ const ManageAccount = () => {
     setShowSupport(false);
     setActiveView('');
     setShowStudentDetails(false);
+    setShowVisitors(false);
+  };
+
+  const toggleVisitorsView = () => {
+    setShowVisitors(!showVisitors);
+    setSelectedSection('');
+    setShowSupport(false);
+    setActiveView('');
+    setShowStudentDetails(false);
+    setShowMediaUpload(false);
   };
 
   // ── Helper: get the single non-professional cardId (string) for select value ──
@@ -637,6 +650,7 @@ const ManageAccount = () => {
               setShowStudentDetails(false);
               setSelectedSection('');
               setShowMediaUpload(false);
+              setShowVisitors(false);
             }}
           >
             Manage Teachers
@@ -650,6 +664,7 @@ const ManageAccount = () => {
             setShowStudentDetails(false);
             setSelectedSection('');
             setShowMediaUpload(false);
+            setShowVisitors(false);
           }}
         >
           Manage Students
@@ -659,6 +674,7 @@ const ManageAccount = () => {
           onClick={() => {
             toggleSupportView();
             setShowMediaUpload(false);
+            setShowVisitors(false);
           }}
         >
           Support Tickets
@@ -666,8 +682,9 @@ const ManageAccount = () => {
         <button
           className={`sidebar-btn ${selectedSection === 'people' ? 'active' : ''}`}
           onClick={() => {
-            toggleSupportView();
+            togglePeopleView();
             setShowMediaUpload(false);
+            setShowVisitors(false);
           }}
         >
           People Tickets
@@ -680,6 +697,7 @@ const ManageAccount = () => {
             setActiveView('');
             setShowStudentDetails(false);
             setShowMediaUpload(false);
+            setShowVisitors(false);
           }}
         >
           Coupons
@@ -693,6 +711,7 @@ const ManageAccount = () => {
             setActiveView('');
             setShowStudentDetails(false);
             setShowMediaUpload(false);
+            setShowVisitors(false);
           }}
         >
           Assign Classes
@@ -705,15 +724,26 @@ const ManageAccount = () => {
             setShowSupport(false);
             setShowStudentDetails(false);
             setSelectedSection('');
+            setShowVisitors(false);
           }}
         >
           <ImageIcon size={18} /> Media Manager
         </button>
 
+        {/* New Visitors Button */}
+        <button
+          className={`sidebar-btn ${showVisitors ? 'active' : ''}`}
+          onClick={toggleVisitorsView}
+        >
+          <User size={18} /> Visitors
+        </button>
+
       </div>
 
       <div className="main-content">
-        {showMediaUpload ? (
+        {showVisitors ? (
+          <Visitors />
+        ) : showMediaUpload ? (
           <MediaUpload />
         ) : showSupport ? (
           <Support />

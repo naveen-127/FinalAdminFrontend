@@ -56,7 +56,7 @@ const COURSE_CONFIG = {
 };
 
 const planOptions = [
-    { value: 'trial', label: 'Trial', days: 10 },
+    // { value: 'trial', label: 'Trial', days: 10 },
     { value: 'monthly', label: 'Monthly', days: 30 },
     { value: 'quarterly', label: 'Quarterly', days: 90 },
     { value: 'halfyearly', label: 'Half Yearly', days: 180 },
@@ -600,7 +600,7 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
                                     disabled={formData.plan === 'trial'}
                                     onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}>
                                     <option value="Razorpay">Razorpay</option>
-                                    <option value="Free Trial">Free Trial</option>
+                                    {/* <option value="Free Trial">Free Trial</option> */}
                                     <option value="Cash">Cash</option>
                                     <option value="UPI">UPI</option>
                                     <option value="Bank Transfer">Bank Transfer</option>

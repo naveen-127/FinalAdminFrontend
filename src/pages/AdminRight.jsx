@@ -525,7 +525,7 @@ const AdminRight = () => {
           }
           return resp.json();
         })
-        .then((data) => {
+             .then((data) => {
           const end1 = performance.now();
           console.log(`✅ Data fetched in ${end1 - start} ms`);
 
