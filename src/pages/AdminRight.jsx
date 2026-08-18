@@ -69,8 +69,14 @@ const AdminRight = () => {
       getAllData();
     }
   }, []);
+
   const [lessonList, setLessonList] = useState([]); // your lessons state
   const [selectedUnit, setSelectedUnit] = useState("");
+
+  const handleLanguageChange = (lang) => {
+    setCurrentLanguage(lang);
+    getAllData(lang);
+  };
 
   useEffect(() => {
     const openLessonId = localStorage.getItem("openLessonId");
@@ -101,8 +107,9 @@ const AdminRight = () => {
 
   const { cardId, subjectName, standard, examTitle, courseName } =
     location.state || {};
-  const keyPrefix = `${examTitle}_${subjectName}_Std${standard}`;
-  // console.log(cardId,"  ",subjectName,"  ",standard," ",examTitle,"  ",courseName )
+  const [currentLanguage, setCurrentLanguage] = useState("en"); // "en" or "ta"
+  const targetSubject = currentLanguage === 'ta' ? `${subjectName}_ta` : subjectName;
+  const keyPrefix = `${examTitle}_${targetSubject}_Std${standard}`;
 
   const [testTags, setTestTags] = useState([]);
   const [testTagInput, setTestTagInput] = useState('');
@@ -211,10 +218,24 @@ const AdminRight = () => {
     console.log("📋 Updated context for tags:", context);
   };
 
-  // Add useEffect to monitor selection changes
   useEffect(() => {
     updateCurrentContext();
   }, [subjectName, selectedUnit, selectedSubTopicUnit, selectedSubUnit, standard]);
+
+  useEffect(() => {
+    if (unitData && selectedSubTopicUnit) {
+      const activeId = selectedSubTopicUnit.id || selectedSubTopicUnit._id;
+      if (activeId) {
+        const updatedUnit = findUnitById(unitData, activeId);
+        if (updatedUnit) {
+          setSelectedSubTopicUnit(updatedUnit);
+          if (updatedUnit.audioFileId) {
+            setSelectedSubTopicUnitAudio([...updatedUnit.audioFileId]);
+          }
+        }
+      }
+    }
+  }, [unitData]);
 
   const emptyQuestion = {
     text: "",
@@ -466,18 +487,20 @@ const AdminRight = () => {
   }, [lessonTestsMap]);
 
 
-  const getAllData = () => {
+  const getAllData = (lang = currentLanguage) => {
     return new Promise((resolve, reject) => {
       const start = performance.now();
 
       // List of subjects that don't require standard
       const subjectsWithoutStandard = ['NEET Previous Questions', 'Formulas', 'JEE Previous Questions', 'Previous Questions'];
 
+      const activeSubject = lang === 'ta' ? `${subjectName}_ta` : subjectName;
+
       // Check if this is a special subject
       const isSpecialSubject = subjectsWithoutStandard.includes(subjectName);
 
       console.log("🔍 getAllData - Subject Analysis:", {
-        subjectName,
+        subjectName: activeSubject,
         isSpecialSubject,
         standard,
         courseName
@@ -486,10 +509,10 @@ const AdminRight = () => {
       let apiUrl;
       if (isSpecialSubject) {
         // For special subjects: Don't send standard parameter
-        apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${subjectName}`;
+        apiUrl = `${API_BASE_URL}/getAllUnitsWithoutStandard/${courseName}/${activeSubject}`;
       } else {
         // For normal subjects: Include standard
-        apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${subjectName}/${standard}`;
+        apiUrl = `${API_BASE_URL}/getAllUnits/${courseName}/${activeSubject}/${standard}`;
       }
 
       fetch(apiUrl, {
@@ -3309,7 +3332,7 @@ const AdminRight = () => {
   const fetchUnitCustomDescription = async (unitId) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/getUnitCustomDescription/${unitId}?subjectName=${encodeURIComponent(subjectName)}&dbname=${encodeURIComponent(courseName)}`,
+        `${API_BASE_URL}/getUnitCustomDescription/${unitId}?subjectName=${encodeURIComponent(targetSubject)}&dbname=${encodeURIComponent(courseName)}`,
         {
           method: "GET",
           credentials: "include",
@@ -3600,6 +3623,37 @@ const AdminRight = () => {
         {subjectName && ` ${subjectName}`}
         {standard && ` (Standard ${standard})`}
       </h2>
+
+      <div className="language-toggle-container" style={{ margin: '15px 0', display: 'flex', gap: '10px' }}>
+        <button 
+          onClick={() => handleLanguageChange('en')} 
+          style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: '1px solid #007bff',
+            backgroundColor: currentLanguage === 'en' ? '#007bff' : 'white',
+            color: currentLanguage === 'en' ? 'white' : '#007bff',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          English
+        </button>
+        <button 
+          onClick={() => handleLanguageChange('ta')} 
+          style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: '1px solid #007bff',
+            backgroundColor: currentLanguage === 'ta' ? '#007bff' : 'white',
+            color: currentLanguage === 'ta' ? 'white' : '#007bff',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          தமிழ் (Tamil)
+        </button>
+      </div>
 
       <div className="adminright-grid">
         <div className="left-panel">
@@ -4075,7 +4129,7 @@ const AdminRight = () => {
                       try {
                         console.log("🔄 Fetching latest subtopic data from backend...");
                         const response = await fetch(
-                          `${API_BASE_URL}/getLatestSubtopic/${subtopicId}?dbname=${courseName}&subjectName=${encodeURIComponent(subjectName)}`,
+                          `${API_BASE_URL}/getLatestSubtopic/${subtopicId}?dbname=${courseName}&subjectName=${encodeURIComponent(targetSubject)}`,
                           {
                             method: "GET",
                             credentials: "include"
