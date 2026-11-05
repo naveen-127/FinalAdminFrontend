@@ -580,10 +580,15 @@ const StudentForm = ({ student, onClose, onSave, mode }) => {
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label>End Date</label>
-                                <input type="date" value={formData.endDate} readOnly className="readonly-field" />
-                                <small>Auto-calculated from plan + start date</small>
-                            </div>
+    <label>End Date</label>
+    <input
+        type="date"
+        value={formData.endDate}
+        min={formData.startDate || undefined}
+        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+    />
+    <small>Auto-calculated from plan + start date — you can edit it</small>
+</div>
                             <div className="form-group">
                                 <label>Amount Paid (₹)</label>
                                 <input type="number" value={formData.amountPaid}

@@ -1,0 +1,205 @@
+/* =====================================================
+   ManageStudent.css
+   Student list: header row, table, badges, actions.
+   (Search/filter bar lives in ManageAccount.css.)
+   ===================================================== */
+
+.student-management-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ───────── List header ───────── */
+.student-list-container {
+  margin-bottom: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f7fafc;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+}
+.list-header-left { flex: 1; }
+.list-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+.search-summary { font-size: 11px; font-weight: 400; color: #718096; }
+
+.add-student-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.add-student-btn:hover { opacity: 0.9; }
+.add-student-btn svg { width: 13px; height: 13px; }
+
+/* ───────── Table ───────── */
+.student-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.student-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+.student-table th {
+  padding: 8px 10px;
+  text-align: left;
+  background: #f1f5f9;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+.student-table td {
+  padding: 7px 10px;
+  vertical-align: middle;
+  font-size: 11px;
+}
+.student-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+.student-table tbody tr:hover { background: #f8fafc; }
+
+/* row fade-in */
+.student-row { animation: studentFadeIn 0.3s ease-out both; }
+.student-row:nth-child(1) { animation-delay: 0.05s; }
+.student-row:nth-child(2) { animation-delay: 0.10s; }
+.student-row:nth-child(3) { animation-delay: 0.15s; }
+.student-row:nth-child(4) { animation-delay: 0.20s; }
+.student-row:nth-child(5) { animation-delay: 0.25s; }
+@keyframes studentFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ───────── Cells ───────── */
+.student-info    { display: flex; align-items: center; gap: 10px; }
+.student-details { display: flex; flex-direction: column; gap: 2px; }
+.student-name    { font-size: 12px; font-weight: 600; color: #2c3e50; }
+.student-id      { font-size: 9px; font-family: monospace; color: #718096; }
+
+.contact-info { display: flex; flex-direction: column; gap: 3px; }
+.contact-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #4a5568; }
+.contact-item svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+.course-info { display: flex; flex-direction: column; gap: 2px; }
+.course-type { font-size: 11px; font-weight: 600; color: #2c3e50; }
+.course-name { font-size: 10px; color: #718096; }
+
+.subscription-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.date-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: #4a5568; white-space: nowrap; }
+.date-item svg { width: 10px; height: 10px; }
+
+/* ───────── Badges ───────── */
+.plan-badge,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+.plan-badge   { text-transform: capitalize; }
+.status-badge { letter-spacing: 0.4px; text-transform: uppercase; } /* colour set inline via getStatusColor() */
+.days-count   { font-size: 9px; opacity: 0.9; }
+
+.plan-trial      { background: #f59e0b; }
+.plan-monthly    { background: #10b981; }
+.plan-quarterly  { background: #3b82f6; }
+.plan-halfyearly { background: #8b5cf6; }
+.plan-yearly     { background: #06b6d4; }
+.plan-default    { background: #64748b; }
+
+/* ───────── Action buttons (one row) ───────── */
+.action-buttons { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+
+.view-btn,
+.edit-btn,
+.deleteE-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.view-btn svg,
+.edit-btn svg,
+.delete-btn svg { width: 11px; height: 11px; }
+
+.view-btn   { background: #3498db; color: #fff; border: none; }
+.view-btn:hover { background: #2980b9; }
+.edit-btn   { background: #2563eb; color: #fff; border: none; }
+.edit-btn:hover { background: #1d4ed8; }
+.delete-btn { background: #fff; color: #dc2626; border: 1px solid #dc2626; }
+.delete-btn:hover { background: #dc2626; color: #fff; }
+
+/* ───────── Mobile ───────── */
+@media (max-width: 768px) {
+  .list-header { flex-wrap: wrap; padding: 10px 12px; }
+  .list-header h3 { flex: 1; }
+  .search-summary { order: 3; width: 100%; }
+  .add-student-btn { height: 30px; padding: 0 12px; font-size: 12px; }
+
+  .student-table { min-width: 700px; }
+  .student-table th { padding: 8px; font-size: 10px; }
+  .student-table td { padding: 6px 8px; }
+  .action-buttons { gap: 4px; }
+  .view-btn, .edit-btn, .delete-btn { padding: 4px 8px; font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  .student-table { min-width: 620px; }
+  .add-student-btn { height: 27px; font-size: 11px; }
+}
+
+/* ───────── Print ───────── */
+@media print {
+  .sidebar, .search-filter-bar, .action-buttons,
+  .add-student-btn, .reset-filters-btn { display: none !important; }
+  .main-content { margin-left: 0; padding: 0; }
+  .manage-container { box-shadow: none; }
+  .student-table th { background: #f0f0f0; print-color-adjust: exact; }
+}

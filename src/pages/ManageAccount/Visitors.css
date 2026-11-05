@@ -483,6 +483,12 @@
   height: 10px;
 }
 
+/* Row Actions (View + Delete) */
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+
 /* View Button */
 .view-details-btn {
   display: inline-flex;
@@ -507,6 +513,34 @@
 }
 
 .view-details-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Delete Button */
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: #ffebee;
+  color: #f44336;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  background: #f44336;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.25);
+}
+
+.delete-btn svg {
   width: 12px;
   height: 12px;
 }
@@ -912,7 +946,8 @@
     gap: 3px;
   }
 
-  .view-details-btn {
+  .view-details-btn,
+  .delete-btn {
     padding: 2px 6px;
     font-size: 9px;
   }

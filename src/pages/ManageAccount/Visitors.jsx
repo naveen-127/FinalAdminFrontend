@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config';
 import { 
   Search, Filter, Eye, Download, Calendar, User, Mail, Phone, 
-  CheckCircle, XCircle, AlertCircle, Users, Award, Clock, RefreshCw 
+  CheckCircle, XCircle, AlertCircle, Users, Award, Clock, RefreshCw, Trash2 
 } from 'lucide-react';
 import './Visitors.css';
 
@@ -192,6 +192,33 @@ const Visitors = () => {
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedVisitor(null);
+  };
+
+  const handleDelete = async (visitor) => {
+    const id = visitor.id || visitor._id;
+    if (!window.confirm(`Delete visitor "${visitor.name || 'Unknown'}"? This cannot be undone.`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/deleteVisitor/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      if (!response.ok || data.status === 'error') {
+        throw new Error(data.message || 'Delete failed');
+      }
+
+      // Remove from the list immediately, then refresh the stats cards
+      setVisitors((prev) => prev.filter((v) => (v.id || v._id) !== id));
+      if (selectedVisitor && (selectedVisitor.id || selectedVisitor._id) === id) {
+        handleCloseDetails();
+      }
+      fetchStats();
+    } catch (err) {
+      console.error('Error deleting visitor:', err);
+      alert('Could not delete visitor: ' + err.message);
+    }
   };
 
   const handleExportCSV = () => {
@@ -480,12 +507,20 @@ const Visitors = () => {
                     </div>
                   </td>
                   <td>
-                    <button
-                      className="view-details-btn"
-                      onClick={() => handleViewDetails(visitor)}
-                    >
-                      <Eye size={16} /> View
-                    </button>
+                    <div className="row-actions">
+                      <button
+                        className="view-details-btn"
+                        onClick={() => handleViewDetails(visitor)}
+                      >
+                        <Eye size={16} /> View
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(visitor)}
+                      >
+                        <Trash2 size={16} /> Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -569,6 +604,15 @@ const Visitors = () => {
                     {selectedVisitor.status || 'Unknown'}
                   </span>
                 </div>
+              </div>
+
+              <div className="detail-section">
+                <button
+                  className="delete-btn"
+                  onClick={() => handleDelete(selectedVisitor)}
+                >
+                  <Trash2 size={16} /> Delete Visitor
+                </button>
               </div>
             </div>
           </div>

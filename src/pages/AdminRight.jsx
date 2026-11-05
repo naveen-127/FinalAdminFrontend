@@ -73,11 +73,22 @@ const AdminRight = () => {
   const [lessonList, setLessonList] = useState([]); // your lessons state
   const [selectedUnit, setSelectedUnit] = useState("");
 
-  const handleLanguageChange = (lang) => {
-    setCurrentLanguage(lang);
-    getAllData(lang);
-  };
+const handleLanguageChange = (lang) => {
+  setCurrentLanguage(lang);
 
+  // clear anything selected from the previous language
+  setSelectedSubTopicUnit(null);
+  setSelectedSubUnit(null);
+  setSelectedUnit("");
+  setSelectedTest(null);
+  setEditSelecetedSubUnit("");
+  setShowExplanationForm(false);
+  setShowTestForm(false);
+  setFirstClicked(null);
+  setLastClicked(null);
+
+  getAllData(lang);
+}
   useEffect(() => {
     const openLessonId = localStorage.getItem("openLessonId");
     if (openLessonId && lessonList.length > 0) {
@@ -1232,7 +1243,7 @@ const AdminRight = () => {
         parentId: lastClicked,
         rootId: firstClicked,
         dbname: courseName,
-        subjectName: subjectName,
+       subjectName: targetSubject,  
         unitName: subTitle.trim(),
         explanation: cleanedDescription,
         imageUrls: imageUrls, // ✅ Now contains actual uploaded image URLs
@@ -2260,7 +2271,7 @@ const AdminRight = () => {
 
     const currentdata = {
       dbname: courseName,
-      subjectName: subjectName,
+      subjectName: targetSubject,
       standard: standard,
       parentId: subUnit.id, // ✅ real subunit id
       rootId: firstClicked, // ✅ root id
@@ -2695,7 +2706,7 @@ const AdminRight = () => {
       // ✅ CRITICAL FIX: Proper payload structure - KEEP customDescription SEPARATE
       const updatedData = {
         dbname: courseName,
-        subjectName: subjectName,
+          subjectName: targetSubject, 
         standard: standard,
         parentId: editSelecetedSubUnit,
         rootId: firstClicked,

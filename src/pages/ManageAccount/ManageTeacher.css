@@ -1,0 +1,301 @@
+/* =====================================================
+   ManageTeacher.css
+   Teacher cards, add/edit form, password field.
+   Form rules are scoped to .teachers-management so they
+   don't leak into other forms.
+   ===================================================== */
+
+.teachers-management {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.existing-teachers-section,
+.create-teacher-section {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.create-teacher-section { margin-bottom: 16px; }
+
+/* ───────── Section header ───────── */
+.teachers-management .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.teachers-management .section-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+.teacher-count {
+  padding: 3px 10px;
+  background: #e2e8f0;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #4a5568;
+}
+
+.add-teacher-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-teacher-btn:hover { background: #16a34a; }
+
+/* ───────── Teacher cards ───────── */
+.teachers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.teacher-card {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: box-shadow 0.2s;
+}
+.teacher-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
+
+.teacher-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+.teacher-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 700;
+}
+.teacher-info h4 { margin: 0 0 2px; font-size: 13px; }
+.teacher-role {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 10px;
+}
+
+.teacher-card-body { padding: 10px 12px; }
+.teacher-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
+  color: #4a5568;
+}
+.teacher-access {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+.access-badge {
+  padding: 2px 8px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 10px;
+  color: #334155;
+}
+.access-badge.subjects { background: #e0f2fe; color: #0369a1; }
+
+.teacher-card-footer {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+.teacher-edit-btn,
+.teacher-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.teacher-edit-btn   { background: #3b82f6; color: #fff; border: none; }
+.teacher-edit-btn:hover { background: #2563eb; }
+.teacher-delete-btn { background: #fff; color: #dc2626; border: 1px solid #dc2626; }
+.teacher-delete-btn:hover { background: #dc2626; color: #fff; }
+
+.teacher-empty { background: #eff6ff; border-color: #93c5fd; }
+
+/* ───────── Create / edit form ───────── */
+.teachers-management .form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.teachers-management .form-header h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.close-form-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.close-form-btn:hover { color: #ef4444; }
+
+.teacher-form { display: flex; flex-direction: column; gap: 10px; }
+.teachers-management .form-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.teachers-management .form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 160px;
+}
+.teachers-management .form-group.full-width { flex: none; width: 100%; }
+
+.teachers-management .form-group label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #334155;
+}
+.teachers-management .form-group input,
+.teachers-management .form-group select {
+  padding: 7px 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.teachers-management .form-group input:focus,
+.teachers-management .form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.checkbox-group,
+.subject-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+.teachers-management .checkbox-group label,
+.teachers-management .subject-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.teachers-management .checkbox-group label:hover,
+.teachers-management .subject-options label:hover { background: #e2e8f0; }
+.teachers-management .checkbox-group input[type='checkbox'],
+.teachers-management .subject-options input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.create-teacher-btn {
+  margin-top: 6px;
+  padding: 8px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.create-teacher-btn:hover { background: #2563eb; }
+
+/* ───────── Password field with eye button ───────── */
+.password-input-wrapper { position: relative; display: flex; align-items: center; }
+.password-input-wrapper input { flex: 1; padding-right: 40px; }
+.password-eye-btn {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.password-eye-btn:hover { color: #333; background: #f0f0f0; }
+
+/* ───────── Role badges ───────── */
+.role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: #fff;
+}
+.role-badge.teacher { background: #3498db; }
+.role-badge.admin   { background: #8b5cf6; }
+.role-badge.student { background: #10b981; }
+
+/* ───────── Mobile ───────── */
+@media (max-width: 768px) {
+  .existing-teachers-section,
+  .create-teacher-section { padding: 12px; border-radius: 8px; }
+
+  .teachers-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  .teachers-management .form-row { flex-direction: column; }
+  .teachers-management .form-group { min-width: 0; width: 100%; }
+  .create-teacher-btn { padding: 10px; }
+  .add-teacher-btn { font-size: 12px; }
+}
