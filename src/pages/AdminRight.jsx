@@ -618,7 +618,7 @@ const handleLanguageChange = (lang) => {
         url = `${API_BASE_URL}/moveSpecialSubjectLesson/${direction}`;
         moveData = {
           dbname: courseName,
-          subjectName: subjectName,
+          subjectName: targetSubject,
           parentId: lesson.id,
           rootId: lesson.id,
           unitName: lesson.unitName,
@@ -636,7 +636,7 @@ const handleLanguageChange = (lang) => {
           url = `${API_BASE_URL}/moveRootUnit/${direction}`;
           moveData = {
             dbname: courseName,
-            subjectName: subjectName,
+            subjectName: targetSubject,
             unitId: lesson.id,
             unitName: lesson.unitName,
             standard: lesson.standard || standard
@@ -657,7 +657,7 @@ const handleLanguageChange = (lang) => {
           url = `${API_BASE_URL}/moveUnit/${direction}`;
           moveData = {
             dbname: courseName,
-            subjectName: subjectName,
+            subjectName: targetSubject,
             parentId: lesson.id,
             rootId: parentInfo.rootId,
             unitName: lesson.unitName,
@@ -781,7 +781,7 @@ const handleLanguageChange = (lang) => {
     try {
       const moveData = {
         dbname: courseName,
-        subjectName: subjectName,
+        subjectName: targetSubject,
         parentId: subUnit.id, // The ID of the unit to move
         rootId: firstClicked, // The root ID
         unitName: subUnit.unitName,
@@ -854,7 +854,7 @@ const handleLanguageChange = (lang) => {
         parentId: lastClicked,
         testName: test.testName || test.name,
         dbname: courseName,
-        subjectName: subjectName
+       subjectName: targetSubject
       });
 
       const response = await fetch(`${API_BASE_URL}/moveTest/${direction}?${params}`, {
@@ -1046,7 +1046,7 @@ const handleLanguageChange = (lang) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dbname: courseName,
-          subjectName: subjectName,
+          subjectName: targetSubject,
           unit: {
             unitName: oldHeadUnitName,
             standard: isSpecialSubject ? null : standard, // Null for special subjects
@@ -1070,7 +1070,7 @@ const handleLanguageChange = (lang) => {
       // Add new unit
       const payload = {
         dbname: courseName,
-        subjectName: subjectName,
+       subjectName: targetSubject,  
         unit: {
           unitName: newUnit,
           // Only include standard for non-special subjects
@@ -1122,7 +1122,7 @@ const handleLanguageChange = (lang) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         dbname: courseName,
-        subjectName: subjectName,
+        subjectName: targetSubject,
         unit: {
           unitName: unitToEdit,
           standard: standard,
@@ -1815,7 +1815,7 @@ const handleLanguageChange = (lang) => {
         dbname: courseName,
         rootId: firstClicked,
         parentId: lastClicked,
-        subjectName: subjectName,
+          subjectName: targetSubject,
         testName: testName.trim(),
         unitName: selectedUnit,
         marks: pass,
@@ -1964,7 +1964,7 @@ const handleLanguageChange = (lang) => {
         dbname: courseName,
         rootId: firstClicked,
         parentId: lastClicked,
-        subjectName: subjectName,
+         subjectName: targetSubject, 
         testName: testName.trim(),
         unitName: selectedUnit,
         marks: pass,
@@ -2154,7 +2154,7 @@ const handleLanguageChange = (lang) => {
         dbname: courseName,
         parentId: lastClicked,
         rootId: firstClicked,
-        subjectName: subjectName,
+         subjectName: targetSubject, 
         testName: testNameToDelete,
       };
 
@@ -2475,7 +2475,7 @@ const handleLanguageChange = (lang) => {
         sourceUrl: currentUrl,
         destinationPath: newFullS3Path,
         dbname: courseName,
-        subjectName: subjectName,
+      subjectName: targetSubject,
         subtopicId: selectedSubTopicUnit._id || selectedSubTopicUnit.id,
         rootId: firstClicked,
         parentId: parentId,  // ✅ Now parentId is defined
@@ -2844,7 +2844,7 @@ const handleLanguageChange = (lang) => {
     }
     const currentdata = {
       dbname: courseName,
-      subjectName: subjectName,
+      subjectName: targetSubject,
       standard: standard,
 
       parentId: lastClicked,
@@ -2945,7 +2945,7 @@ const handleLanguageChange = (lang) => {
 
     const payload = {
       dbname: courseName,
-      subjectName: subjectName,
+     subjectName: targetSubject,
       unit: {
         unitName: isEditing ? oldHeadUnitName : newUnit,
         // ✅ Only send standard if it's NOT a special subject
@@ -2994,7 +2994,7 @@ const handleLanguageChange = (lang) => {
 
     const payload = {
       dbname: courseName,
-      subjectName: subjectName,
+     subjectName: targetSubject,
       unit: {
         unitName: unitName,
         // Only include standard for non-special subjects
