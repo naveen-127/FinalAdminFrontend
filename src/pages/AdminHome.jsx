@@ -3,6 +3,8 @@ import { FiBook }                      from 'react-icons/fi';
 import { useNavigate, useLocation }    from 'react-router-dom';
 import './AdminHome.css';
 import { API_BASE_URL, ADMIN_LAB_URL } from '../config';
+import { loadCurrentUser }             from '../utils/access';
+import { MANAGE_SERVICE_IDS, parseServices } from './ManageAccount/services';
 
 const academicCards = [
   { id: 'kindergarten', subtitle: 'Kindergarten', title: 'Bright Beginnings' },
@@ -36,13 +38,36 @@ const AdminHome = () => {
   const [hasCheckedSession, setHasCheckedSession] = useState(false);
   const [hasFetchedUserData, setHasFetchedUserData] = useState(false);
 
-  // ── NEW: parsed array of course names the teacher has access to ──
   // e.g. "jee,neet" → ["jee", "neet"] | "jee" → ["jee"] | null → []
   const courseNameList = React.useMemo(() => {
     if (!courseName) return [];
     if (Array.isArray(courseName)) return courseName;
     return courseName.split(',').map(s => s.trim()).filter(Boolean);
   }, [courseName]);
+
+  // ───────── Which home buttons may this user see? ─────────
+  //  main admin (no service)            → Academics + Professional + Manage Account
+  //  admin with Manage Account sections → Manage Account only
+  //  (old admin that still has "academics"/"professional" saved keeps that button)
+  //  teacher                            → by their courseType (unchanged)
+  const isAdminUser = userRole === 'admin';
+  const adminServices = parseServices(currentUser?.service);
+  const isFullAdmin = isAdminUser && adminServices.length === 0;
+
+  // Admins can no longer be given Academics/Professional. Only the main admin (and
+  // any old admin that still has one saved) sees those buttons.
+  const showAcademics = isAdminUser
+    ? isFullAdmin || adminServices.includes('academics')
+    : courseType === 'academics' || courseType === 'tutor';
+
+  const showProfessional = isAdminUser
+    ? isFullAdmin || adminServices.includes('professional')
+    : courseType === 'professional';
+
+  const showManageAccount = isAdminUser &&
+    (isFullAdmin || adminServices.some((id) => MANAGE_SERVICE_IDS.includes(id)));
+
+  const hasNoAccess = !!currentUser && !showAcademics && !showProfessional && !showManageAccount;
 
   useEffect(() => {
     const storedState = sessionStorage.getItem('adminReturnState');
@@ -100,14 +125,17 @@ const AdminHome = () => {
         }
 
         if (data.status === 'pass' && isMounted) {
-          const storedUser = JSON.parse(localStorage.getItem('currentUser'));
+          // loadCurrentUser also works out the admin's allocated service
+          const storedUser = await loadCurrentUser();
+          if (!isMounted) return;
+
           setCurrentUser(storedUser);
           setUserRole(storedUser?.role);
           setCourseType(storedUser?.courseType || storedUser?.coursetype);
           setCourseName(storedUser?.courseName || storedUser?.coursename);
 
           if (!hasFetchedUserData) {
-            fetchUserData();
+            fetchUserData(storedUser);
           }
           setHasCheckedSession(true);
         }
@@ -126,23 +154,24 @@ const AdminHome = () => {
     };
   }, [navigate, hasCheckedSession, hasFetchedUserData]);
 
-  const fetchUserData = async () => {
+  // user is passed in explicitly (state is not updated yet when this runs)
+  const fetchUserData = async (user = currentUser) => {
     setLoading(true);
     try {
-      if (!currentUser) {
+      if (!user) {
         console.log("No currentUser found");
         return;
       }
 
-      if (currentUser.role === 'admin') {
+      if (user.role === 'admin') {
         console.log("User is admin, skipping user data fetch");
         setHasFetchedUserData(true);
         return;
       }
 
       const requestBody = {
-        userId: currentUser.gmail || currentUser.email || currentUser.id,
-        courseName: courseName
+        userId: user.gmail || user.email || user.id,
+        courseName: user.courseName || user.coursename
       };
 
       const response = await fetch(`${API_BASE_URL}/getUserSubjects`, {
@@ -154,17 +183,8 @@ const AdminHome = () => {
 
       const data = await response.json();
 
-      if (data.subjects) {
-        setCurrSubjects(data.subjects);
-      } else {
-        setCurrSubjects([]);
-      }
-
-      if (data.standards) {
-        setCurrStandards(data.standards);
-      } else {
-        setCurrStandards([]);
-      }
+      setCurrSubjects(data.subjects ? data.subjects : []);
+      setCurrStandards(data.standards ? data.standards : []);
 
       setHasFetchedUserData(true);
     } catch (error) {
@@ -220,9 +240,8 @@ const AdminHome = () => {
   const isSpecialSubject = (subjectName) => {
     const specials = [
       'NEET Previous Questions',
-      'JEE Previous Questions',  // Added JEE Previous Questions
-      'Formulas',
       'JEE Previous Questions',
+      'Formulas',
       'Previous Questions',
       'Derivation'
     ];
@@ -314,7 +333,7 @@ const AdminHome = () => {
     if (!subjectsByCard[card.id]) {
       let defaults = [];
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];  // Added JEE Previous Questions
+        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];
       } else if (card.id === 'neet') {
         defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
       }
@@ -329,7 +348,7 @@ const AdminHome = () => {
       let standardDefaults = [];
 
       if (card.id === 'jee') {
-        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];  // Added JEE Previous Questions
+        defaults = ['Physics', 'Chemistry', 'Maths', 'JEE Previous Questions', 'Derivation'];
         standardDefaults = ['11', '12'];
       } else if (card.id === 'neet') {
         defaults = ['Physics', 'Chemistry', 'Zoology', 'Botany', 'NEET Previous Questions', 'Formulas', 'Derivation'];
@@ -355,17 +374,15 @@ const AdminHome = () => {
     setSelectedCard(card);
   };
 
-  // ── Helper: should this card be visible to the current (non-admin) teacher? ──
+  // Should this card be visible to the current (non-admin) teacher?
   const isCardAccessible = (cardId) => {
     if (userRole === 'admin') return true;
 
-    // Handle board_exam alias
     if (
       (courseName === 'board_exam' || courseName === 'boardexam') &&
       cardId === 'class6-12'
     ) return true;
 
-    // ── KEY FIX: check against the parsed list so "jee,neet" matches both ──
     return courseNameList.includes(cardId);
   };
 
@@ -413,14 +430,20 @@ const AdminHome = () => {
         <div className="header">
           {mode === null ? (
             <div className="mode-switch-container">
-              {(userRole === 'admin' || courseType === 'academics' || courseType === 'tutor') && (
+              {showAcademics && (
                 <button className="mode-button uniform" onClick={() => setMode('academics')}>Academics</button>
               )}
-              {(userRole === 'admin' || courseType === 'professional') && (
+              {showProfessional && (
                 <button className="mode-button uniform" onClick={() => setMode('professional')}>Professional Training</button>
               )}
-              {userRole === 'admin' && (
+              {showManageAccount && (
                 <button className="mode-button uniform" onClick={() => navigate('/manage-account')}>Manage Account</button>
+              )}
+              {hasNoAccess && (
+                <p style={{ color: '#6b7280', textAlign: 'center' }}>
+                  No access has been allocated to this account.<br />
+                  Please contact the administrator (or log in again).
+                </p>
               )}
             </div>
           ) : (
@@ -500,7 +523,6 @@ const AdminHome = () => {
                     <div className="cards-wrapper">
                       <div className="cards-container">
                         {(mode === 'academics' ? academicCards : professionalCards).map((cardObj) => (
-                          // ── FIX: use isCardAccessible() for all roles ──
                           isCardAccessible(cardObj.id) && (
                             <div key={cardObj.id} className="card" onClick={() => handleCardClick(cardObj)}>
                               <div className="card-subtitle">{cardObj.subtitle}</div>

@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import './ManageAccount.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
-import { User, Image as ImageIcon } from 'lucide-react';
+import { loadCurrentUser } from '../utils/access';
+import { MANAGE_SERVICE_IDS, parseServices } from './ManageAccount/services';
+import { User, Image as ImageIcon, BookOpen } from 'lucide-react';
 
 import Support from './ManageAccount/Support';
 import People from './ManageAccount/PeopleEnquiry';
@@ -12,17 +14,42 @@ import MediaUpload from './ManageAccount/MediaUpload';
 import Visitors from './ManageAccount/Visitors';
 import ManageTeacher from './ManageAccount/ManageTeacher';
 import ManageStudent from './ManageAccount/ManageStudent';
+import Blogs from './ManageAccount/Blogs';
 
-const VALID_SECTIONS = [
-  'teachers',
-  'students',
-  'support',
-  'people',
-  'coupons',
-  'assign-class',
-  'media',
-  'visitors',
+// Every section + its sidebar label (order = sidebar order)
+const NAV_ITEMS = [
+  { id: 'teachers',     label: 'Manage Staff' },
+  { id: 'students',     label: 'Manage Students' },
+  { id: 'support',      label: 'Support Tickets' },
+  { id: 'people',       label: 'People Tickets' },
+  { id: 'coupons',      label: 'Coupons' },
+  { id: 'assign-class', label: 'Assign Classes' },
+  { id: 'media',        label: 'Media Manager', icon: <ImageIcon size={18} /> },
+  { id: 'visitors',     label: 'Visitors',      icon: <User size={18} /> },
+  { id: 'blogs',        label: 'Blogs',         icon: <BookOpen size={18} /> },
 ];
+const ALL_SECTIONS = NAV_ITEMS.map((n) => n.id);
+const TEACHER_SECTIONS = ['students', 'support', 'people', 'coupons', 'assign-class', 'media', 'visitors'];
+
+// ── Which sections may this logged-in user open? ──
+//  teacher                → teacher sections
+//  admin WITH services    → ONLY those sections (one or many, stored as "visitors,blogs")
+//  admin with no service  → everything (the main admin)
+//  admin whose service could not be resolved → nothing (fail closed)
+const getAllowedSections = (user) => {
+  if (!user) return ALL_SECTIONS;
+  if (user.role === 'teacher') return TEACHER_SECTIONS;
+  if (user.role === 'admin') {
+    if (user.service === undefined) return [];
+    const list = parseServices(user.service);
+    if (list.length === 0) return ALL_SECTIONS; // main admin: no service = full access
+    // keep sidebar order, drop unknown ids (e.g. old "academics"/"professional")
+    return NAV_ITEMS
+      .map((n) => n.id)
+      .filter((id) => list.includes(id) && MANAGE_SERVICE_IDS.includes(id));
+  }
+  return ALL_SECTIONS;
+};
 
 // ── Normalise a raw API student doc into the shape the UI expects ──
 const normaliseStudent = (student, index) => {
@@ -89,46 +116,28 @@ const ManageAccount = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Which panel is showing is stored in the URL (?section=visitors),
-  // so it survives refresh, back/forward and bookmarks.
-  // teachers | students | support | people | coupons | assign-class | media | visitors
-  const sectionParam = searchParams.get('section');
-  const activeSection = VALID_SECTIONS.includes(sectionParam)
-    ? sectionParam
-    : 'teachers';
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [accessReady, setAccessReady] = useState(false);
   const [assignedStudentIds, setAssignedStudentIds] = useState([]);
   const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
   const [sessionOk, setSessionOk] = useState(false);
 
   const isTeacherUser = currentUser?.role === 'teacher';
 
+  // Sections this user may see, and the one currently open (kept in the URL: ?section=...)
+  const allowedSections = getAllowedSections(currentUser);
+  const sectionParam = searchParams.get('section');
+  const activeSection = allowedSections.includes(sectionParam) ? sectionParam : allowedSections[0];
+
   const goTo = (section) => {
+    if (!allowedSections.includes(section)) return;
     setSearchParams({ section });
     setSidebarOpen(false);
   };
-
-  // ── Load current user ──
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user) {
-      setCurrentUser(user);
-      if (user.role === 'teacher') {
-        // Default teachers to "students" only when no section is in the URL
-        if (!searchParams.get('section')) {
-          setSearchParams({ section: 'students' }, { replace: true });
-        }
-        fetchAssignedStudents(user.id);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const fetchAssignedStudents = async (teacherId) => {
     try {
@@ -146,32 +155,47 @@ const ManageAccount = () => {
     }
   };
 
-  // ── Fetch teachers + students (shared by all child panels) ──
+  // ── Load current user (and resolve its allocated service if login didn't store it) ──
+  useEffect(() => {
+    const load = async () => {
+      const user = await loadCurrentUser();
+
+      if (user) {
+        setCurrentUser(user);
+        if (user.role === 'teacher') fetchAssignedStudents(user.id);
+      }
+      setAccessReady(true);
+    };
+    load();
+  }, []);
+
+  // ── Fetch teachers/admins + students (shared by all child panels) ──
   const getUsers = useCallback(() => {
     if (!currentUser) return;
     if (currentUser.role === 'teacher' && !hasLoadedAssignedStudents) return;
 
     fetch(`${API_BASE_URL}/getUsers`, { method: 'GET', credentials: 'include' })
       .then((r) => r.json())
-      .then((teacherData) =>
+      .then((userData) =>
         fetch(`${API_BASE_URL}/getAllStudents`, { method: 'GET', credentials: 'include' })
           .then((r) => r.json())
           .then((studentData) => {
-            const teacherAdminList = Array.isArray(teacherData)
-              ? teacherData
+            const staffList = Array.isArray(userData)
+              ? userData
                   .filter((u) => u.role === 'teacher' || u.role === 'admin')
                   .map((u) => ({
                     id: u._id || u.id,
                     name: u.userName || '',
                     phone: u.phoneNumber || '',
                     email: u.gmail || '',
-                    password: u.password || '',
-                    role: u.role || 'user',
+                    role: u.role || 'teacher',
+                    service: u.service || '',
                     access: {
                       mode: u.coursetype || '',
-                      cardId: Array.isArray(u.courseName)
-                        ? u.courseName
-                        : u.courseName ? [u.courseName] : [],
+                      // courseName is stored as "jee,neet" -> turn back into an array
+                      cardId: u.courseName
+                        ? String(u.courseName).split(',').map((s) => s.trim()).filter(Boolean)
+                        : [],
                       boardType: u.boardType || '',
                       subjects: u.subjects || [],
                       standards: u.standards || [],
@@ -187,7 +211,7 @@ const ManageAccount = () => {
               alert('Error fetching students: ' + studentData.message);
             }
 
-            setTeachers(teacherAdminList);
+            setTeachers(staffList);
             setStudents(
               currentUser.role === 'teacher'
                 ? studentList.filter((s) => assignedStudentIds.includes(s.id))
@@ -216,10 +240,9 @@ const ManageAccount = () => {
       .catch(() => {});
   }, [navigate]);
 
-  // ── Load data once session is valid (and again if its inputs change) ──
   useEffect(() => {
-    if (sessionOk) getUsers();
-  }, [sessionOk, getUsers]);
+    if (sessionOk && accessReady) getUsers();
+  }, [sessionOk, accessReady, getUsers]);
 
   // ── Render the active panel ──
   const renderContent = () => {
@@ -229,25 +252,27 @@ const ManageAccount = () => {
       case 'support':      return <Support />;
       case 'people':       return <People />;
       case 'coupons':      return <Coupon />;
+      case 'blogs':        return <Blogs />;
       case 'assign-class': return <AssignClass teachers={teachers} students={students} />;
-      case 'students':
-        return <ManageStudent students={students} onRefresh={getUsers} />;
-      case 'teachers':
+      case 'students':     return <ManageStudent students={students} onRefresh={getUsers} />;
+      case 'teachers':     return <ManageTeacher teachers={teachers} onRefresh={getUsers} />;
       default:
-        return isTeacherUser
-          ? <ManageStudent students={students} onRefresh={getUsers} />
-          : <ManageTeacher teachers={teachers} onRefresh={getUsers} />;
+        return (
+          <div className="manage-container">
+            <h2>No access</h2>
+            <p>No section has been allocated to this account. Please contact the administrator.</p>
+          </div>
+        );
     }
   };
 
-  const NavBtn = ({ id, children }) => (
-    <button
-      className={`sidebar-btn ${activeSection === id ? 'active' : ''}`}
-      onClick={() => goTo(id)}
-    >
-      {children}
-    </button>
-  );
+  if (!accessReady) {
+    return (
+      <div className="manage-account-container">
+        <div className="main-content" style={{ marginLeft: 0 }}>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="manage-account-container">
@@ -259,14 +284,16 @@ const ManageAccount = () => {
 
         <h3 className="sidebar-title">Admin Panel</h3>
 
-        {!isTeacherUser && <NavBtn id="teachers">Manage Teachers</NavBtn>}
-        <NavBtn id="students">Manage Students</NavBtn>
-        <NavBtn id="support">Support Tickets</NavBtn>
-        <NavBtn id="people">People Tickets</NavBtn>
-        <NavBtn id="coupons">Coupons</NavBtn>
-        <NavBtn id="assign-class">Assign Classes</NavBtn>
-        <NavBtn id="media"><ImageIcon size={18} /> Media Manager</NavBtn>
-        <NavBtn id="visitors"><User size={18} /> Visitors</NavBtn>
+        {/* Only the sections this user is allowed to use are rendered */}
+        {NAV_ITEMS.filter((n) => allowedSections.includes(n.id)).map((n) => (
+          <button
+            key={n.id}
+            className={`sidebar-btn ${activeSection === n.id ? 'active' : ''}`}
+            onClick={() => goTo(n.id)}
+          >
+            {n.icon} {n.label}
+          </button>
+        ))}
       </div>
 
       <div className="main-content">{renderContent()}</div>

@@ -299,3 +299,43 @@
   .create-teacher-btn { padding: 10px; }
   .add-teacher-btn { font-size: 12px; }
 }
+/* ===== APPEND THIS TO THE BOTTOM OF ManageTeacher.css ===== */
+
+.role-tabs {
+  display: flex;
+  gap: 10px;
+}
+.role-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.role-tab:hover { border-color: #3b82f6; color: #3b82f6; }
+.role-tab.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+.role-tab-count {
+  padding: 1px 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  font-size: 11px;
+}
+.role-tab.active .role-tab-count { background: rgba(255, 255, 255, 0.25); }
+
+.create-teacher-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 768px) {
+  .role-tabs { flex-direction: column; }
+  .role-tab { justify-content: center; }
+}
