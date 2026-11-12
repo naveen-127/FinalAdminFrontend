@@ -1,7 +1,7 @@
 // src/pages/ManageAccount/services.js
-// An admin user can be allocated ONE OR MORE "Manage Account" sections.
-// They are stored in the user's `service` field as a comma-separated string,
-// e.g. "students,blogs"  (empty string = main admin with full access).
+// An admin can be allocated ONE OR MORE sections, stored in `service` as a comma-separated string,
+// e.g. "students,blogs".  "full" = Full access (Academics + Professional + all Manage Account).
+// Empty string = the original main admin (also full access).
 
 export const SERVICES = [
   { id: 'students',     label: 'Manage Students' },
@@ -16,20 +16,26 @@ export const SERVICES = [
 
 export const MANAGE_SERVICE_IDS = SERVICES.map((s) => s.id);
 
-// Old admins may still have these saved. They can no longer be assigned from the form.
-export const HOME_SERVICE_IDS = ['academics', 'professional'];
-const LEGACY_LABELS = { academics: 'Academics', professional: 'Professional Training' };
+export const FULL_ACCESS_ID = 'full';
 
-// "students,blogs" -> ['students', 'blogs'] | '' / null -> [] | array -> array
+// Old admins may still have these saved.
+export const HOME_SERVICE_IDS = ['academics', 'professional'];
+const LEGACY_LABELS = {
+  academics: 'Academics',
+  professional: 'Professional Training',
+  [FULL_ACCESS_ID]: 'Full access (Academics, Professional, Manage Account)',
+};
+
 export const parseServices = (value) => {
   if (!value) return [];
   const list = Array.isArray(value) ? value : String(value).split(',');
   return list.map((s) => String(s).trim()).filter(Boolean);
 };
 
+export const hasFullAccess = (value) => parseServices(value).includes(FULL_ACCESS_ID);
+
 export const serviceLabel = (id) =>
   SERVICES.find((s) => s.id === id)?.label || LEGACY_LABELS[id] || id || '';
 
-// "students,blogs" -> "Manage Students, Blogs"
 export const serviceLabels = (value) =>
   parseServices(value).map(serviceLabel).join(', ');

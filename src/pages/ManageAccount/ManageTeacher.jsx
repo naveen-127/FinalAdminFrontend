@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import './ManageTeacher.css';
 import { API_BASE_URL } from '../../config';
 import { Eye, EyeOff, Mail, Phone, Edit, Trash2 } from 'lucide-react';
-import { SERVICES, MANAGE_SERVICE_IDS, parseServices, serviceLabels } from './services';
+import {
+  SERVICES, MANAGE_SERVICE_IDS, FULL_ACCESS_ID,
+  parseServices, serviceLabel, hasFullAccess,
+} from './services';
 
 const teacherSubjectOptions = {
   jee: ['Physics', 'Chemistry', 'Maths'],
@@ -27,11 +30,10 @@ const emptyForm = {
   phone: '',
   email: '',
   password: '',
-  services: [], // admin only: the Manage Account sections this admin can open (checkboxes)
+  services: [], // admin only: ['full'] or a list of Manage Account sections
   access: { mode: '', cardId: [], boardType: '', subjects: [], standards: [] },
 };
 
-// Backend stores courseName as a string — join with comma when several are selected
 const resolveCardIdForApi = (arr) => (!arr || arr.length === 0 ? '' : arr.join(','));
 
 const ManageTeacher = ({ teachers = [], onRefresh }) => {
@@ -40,13 +42,15 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
   const [originalEmail, setOriginalEmail] = useState(null); // null = creating, string = editing
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordNote, setPasswordNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const isAdminTab = activeTab === 'admin';
   const isEditing = originalEmail !== null;
   const { access } = formData;
   const isBoardExam = access.cardId.includes('board_exam');
-  const allServicesSelected = formData.services.length === MANAGE_SERVICE_IDS.length;
+  const fullAccess = formData.services.includes(FULL_ACCESS_ID);
+  const allServicesSelected = MANAGE_SERVICE_IDS.every((id) => formData.services.includes(id));
 
   const visibleUsers = teachers.filter((t) => (t.role || 'teacher') === activeTab);
   const countOf = (role) => teachers.filter((t) => (t.role || 'teacher') === role).length;
@@ -59,6 +63,7 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
     setShowForm(false);
     setOriginalEmail(null);
     setShowPassword(false);
+    setPasswordNote('');
   };
 
   const switchTab = (tab) => {
@@ -69,10 +74,19 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
   const openCreate = () => {
     setFormData(emptyForm);
     setOriginalEmail(null);
+    setPasswordNote('');
+    setShowPassword(false);
     setShowForm(true);
   };
 
   const getSingleCardId = () => formData.access.cardId[0] || '';
+
+  // ── Admin: Full access (Academics + Professional + Manage Account) ──
+  const toggleFullAccess = () =>
+    setFormData((prev) => ({
+      ...prev,
+      services: prev.services.includes(FULL_ACCESS_ID) ? [] : [FULL_ACCESS_ID],
+    }));
 
   // ── Admin: tick / untick one Manage Account section ──
   const toggleService = (id) =>
@@ -80,13 +94,13 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       ...prev,
       services: prev.services.includes(id)
         ? prev.services.filter((s) => s !== id)
-        : [...prev.services, id],
+        : [...prev.services.filter((s) => s !== FULL_ACCESS_ID), id],
     }));
 
   const toggleAllServices = () =>
     setFormData((prev) => ({
       ...prev,
-      services: prev.services.length === MANAGE_SERVICE_IDS.length ? [] : [...MANAGE_SERVICE_IDS],
+      services: MANAGE_SERVICE_IDS.every((id) => prev.services.includes(id)) ? [] : [...MANAGE_SERVICE_IDS],
     }));
 
   // ── Course / class change (teacher form) ──
@@ -130,7 +144,7 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       return;
     }
     if (isAdminTab && formData.services.length === 0) {
-      alert('Please tick at least one Manage Account section for this admin');
+      alert('Please tick Full access or at least one Manage Account section for this admin');
       return;
     }
     if (!isAdminTab && !access.mode) {
@@ -144,7 +158,7 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       gmail: formData.email.trim(),
       password: formData.password, // blank on edit = keep existing password
       role: activeTab,
-      // several sections are saved as one comma-separated string, e.g. "students,blogs"
+      // "full"  or  "students,blogs"
       service: isAdminTab ? formData.services.join(',') : '',
       coursetype: isAdminTab ? '' : access.mode,
       courseName: isAdminTab ? '' : resolveCardIdForApi(access.cardId),
@@ -185,12 +199,12 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       .finally(() => setSaving(false));
   };
 
-  // ── Delete ──
+  // ── Delete (role is sent so the same email on the other side is NOT deleted) ──
   const handleDelete = (item) => {
     const label = isAdminTab ? 'admin' : 'teacher';
     if (!window.confirm(`Are you sure you want to delete this ${label}: ${item.name || item.email}?`)) return;
 
-    fetch(`${API_BASE_URL}/deleteUser/${encodeURIComponent(item.email)}`, {
+    fetch(`${API_BASE_URL}/deleteUser/${encodeURIComponent(item.email)}?role=${encodeURIComponent(item.role || activeTab)}`, {
       method: 'DELETE',
       credentials: 'include',
     })
@@ -210,18 +224,20 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       });
   };
 
-  // ── Edit ──
+  // ── Edit (loads the current password; it stays hidden until the eye icon is clicked) ──
   const handleEdit = (item) => {
     setOriginalEmail(item.email);
     setShowForm(true);
-    setShowPassword(false);
+    setShowPassword(false);               // hidden until the eye icon is clicked
+    setPasswordNote('Loading password...');
     setFormData({
       name: item.name || '',
       phone: item.phone || '',
       email: item.email || '',
       password: '',
-      // keep only sections that can still be assigned (drops old "academics"/"professional")
-      services: parseServices(item.service).filter((s) => MANAGE_SERVICE_IDS.includes(s)),
+      services: parseServices(item.service).filter(
+        (s) => s === FULL_ACCESS_ID || MANAGE_SERVICE_IDS.includes(s)
+      ),
       access: {
         mode: item.access?.mode || '',
         cardId: Array.isArray(item.access?.cardId)
@@ -232,6 +248,23 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
         standards: item.access?.standards || [],
       },
     });
+
+    fetch(
+      `${API_BASE_URL}/getUserPassword/${encodeURIComponent(item.email)}?role=${encodeURIComponent(item.role || activeTab)}`,
+      { credentials: 'include' }
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && d.password) {
+          setFormData((prev) => ({ ...prev, password: d.password }));
+          setPasswordNote('');
+        } else if (d && d.status === 'forbidden') {
+          setPasswordNote('Only a full-access admin can view passwords.');
+        } else {
+          setPasswordNote('Current password is not stored yet (it is saved the next time this user logs in). Type a new one to set it, or leave blank to keep it.');
+        }
+      })
+      .catch(() => setPasswordNote('Could not load the password.'));
   };
 
   return (
@@ -239,7 +272,6 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
       <h2>Manage Staff</h2>
 
       <div className="teachers-management">
-        {/* ── Two buttons: Teacher / Admin ── */}
         <div className="role-tabs">
           <button
             type="button"
@@ -268,7 +300,6 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
             </div>
           </div>
 
-          {/* ── Create / Edit form ── */}
           {showForm && (
             <div className="create-teacher-section">
               <div className="form-header">
@@ -331,28 +362,40 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    {passwordNote && (
+                      <small style={{ marginTop: 4, color: '#64748b' }}>{passwordNote}</small>
+                    )}
                   </div>
                 </div>
 
-                {/* ───────── ADMIN: Manage Account sections (checkboxes) ───────── */}
+                {/* ───────── ADMIN: Full access + Manage Account sections ───────── */}
                 {isAdminTab && (
                   <div className="form-group full-width">
-                    <label>Manage Account * (this user will ONLY see the ticked sections after login)</label>
+                    <label>Access * (this user will ONLY see what is ticked after login)</label>
                     <div className="checkbox-group">
+                      <label>
+                        <input type="checkbox" checked={fullAccess} onChange={toggleFullAccess} />
+                        <strong>Full access (Academics + Professional + Manage Account)</strong>
+                      </label>
+                    </div>
+
+                    <div className="checkbox-group" style={{ opacity: fullAccess ? 0.5 : 1 }}>
                       <label>
                         <input
                           type="checkbox"
-                          checked={allServicesSelected}
+                          checked={!fullAccess && allServicesSelected}
                           onChange={toggleAllServices}
+                          disabled={fullAccess}
                         />
-                        <strong>Select all</strong>
+                        <strong>Select all Manage Account</strong>
                       </label>
                       {SERVICES.map((s) => (
                         <label key={s.id}>
                           <input
                             type="checkbox"
-                            checked={formData.services.includes(s.id)}
+                            checked={!fullAccess && formData.services.includes(s.id)}
                             onChange={() => toggleService(s.id)}
+                            disabled={fullAccess}
                           />
                           {s.label}
                         </label>
@@ -503,11 +546,12 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
                 const cardIds = item.access?.cardId || [];
                 const subjects = item.access?.subjects || [];
                 const adminServices = parseServices(item.service);
-                // The main admin (no service) = full access; protect it from edit/delete here
-                const isFullAdmin = isAdminTab && adminServices.length === 0;
+                // Original main admin (empty service) is protected from edit/delete here
+                const isMainAdmin = isAdminTab && adminServices.length === 0;
+                const isFull = isAdminTab && (isMainAdmin || hasFullAccess(item.service));
 
                 return (
-                  <div key={item.id || item.email || idx} className="teacher-card">
+                  <div key={item.id || `${item.email}-${item.role}` || idx} className="teacher-card">
                     <div className="teacher-card-header">
                       <div className="teacher-avatar">{(item.name || 'U').charAt(0).toUpperCase()}</div>
                       <div className="teacher-info">
@@ -522,11 +566,11 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
 
                       {isAdminTab ? (
                         <div className="teacher-access">
-                          {isFullAdmin ? (
+                          {isFull ? (
                             <div className="access-badge subjects">Full access</div>
                           ) : (
                             adminServices.map((id) => (
-                              <div key={id} className="access-badge subjects">{serviceLabels(id)}</div>
+                              <div key={id} className="access-badge subjects">{serviceLabel(id)}</div>
                             ))
                           )}
                         </div>
@@ -548,7 +592,7 @@ const ManageTeacher = ({ teachers = [], onRefresh }) => {
                       )}
                     </div>
 
-                    {!isFullAdmin && (
+                    {!isMainAdmin && (
                       <div className="teacher-card-footer">
                         <button className="teacher-edit-btn" onClick={() => handleEdit(item)}>
                           <Edit size={14} /> Edit

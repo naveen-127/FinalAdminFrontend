@@ -3,7 +3,7 @@ import './ManageAccount.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import { loadCurrentUser } from '../utils/access';
-import { MANAGE_SERVICE_IDS, parseServices } from './ManageAccount/services';
+import { MANAGE_SERVICE_IDS, parseServices, hasFullAccess } from './ManageAccount/services';
 import { User, Image as ImageIcon, BookOpen } from 'lucide-react';
 
 import Support from './ManageAccount/Support';
@@ -31,23 +31,36 @@ const NAV_ITEMS = [
 const ALL_SECTIONS = NAV_ITEMS.map((n) => n.id);
 const TEACHER_SECTIONS = ['students', 'support', 'people', 'coupons', 'assign-class', 'media', 'visitors'];
 
+// All roles a user holds (a user may be BOTH teacher and admin with the same login)
+const getRoles = (user) => {
+  if (!user) return [];
+  const roles = Array.isArray(user.roles) && user.roles.length ? [...user.roles] : [user.role];
+  if (user.role && !roles.includes(user.role)) roles.push(user.role);
+  return roles.filter(Boolean);
+};
+
 // ── Which sections may this logged-in user open? ──
-//  teacher                → teacher sections
-//  admin WITH services    → ONLY those sections (one or many, stored as "visitors,blogs")
-//  admin with no service  → everything (the main admin)
-//  admin whose service could not be resolved → nothing (fail closed)
+// admin (even if the same login is also a teacher) → ONLY the sections ticked on the admin account
+//                                                    ("full" or empty service = everything)
+// teacher only                                      → teacher sections
 const getAllowedSections = (user) => {
   if (!user) return ALL_SECTIONS;
-  if (user.role === 'teacher') return TEACHER_SECTIONS;
-  if (user.role === 'admin') {
-    if (user.service === undefined) return [];
+
+  const roles = getRoles(user);
+  const isTeacher = roles.includes('teacher');
+  const isAdmin = roles.includes('admin');
+
+  if (isAdmin) {
+    if (user.service === undefined) return []; // not resolved yet → fail closed
     const list = parseServices(user.service);
-    if (list.length === 0) return ALL_SECTIONS; // main admin: no service = full access
-    // keep sidebar order, drop unknown ids (e.g. old "academics"/"professional")
+    if (list.length === 0 || hasFullAccess(user.service)) return ALL_SECTIONS;
     return NAV_ITEMS
       .map((n) => n.id)
       .filter((id) => list.includes(id) && MANAGE_SERVICE_IDS.includes(id));
   }
+
+  if (isTeacher) return TEACHER_SECTIONS;
+
   return ALL_SECTIONS;
 };
 
@@ -126,7 +139,11 @@ const ManageAccount = () => {
   const [hasLoadedAssignedStudents, setHasLoadedAssignedStudents] = useState(false);
   const [sessionOk, setSessionOk] = useState(false);
 
-  const isTeacherUser = currentUser?.role === 'teacher';
+  const userRoles = getRoles(currentUser);
+  const isTeacherUser = userRoles.includes('teacher');
+  const isAdminUser = userRoles.includes('admin');
+  // Teacher-only users see just their assigned students; anyone who is also admin sees all
+  const isTeacherOnly = isTeacherUser && !isAdminUser;
 
   // Sections this user may see, and the one currently open (kept in the URL: ?section=...)
   const allowedSections = getAllowedSections(currentUser);
@@ -162,7 +179,7 @@ const ManageAccount = () => {
 
       if (user) {
         setCurrentUser(user);
-        if (user.role === 'teacher') fetchAssignedStudents(user.id);
+        if (getRoles(user).includes('teacher')) fetchAssignedStudents(user.id);
       }
       setAccessReady(true);
     };
@@ -172,7 +189,9 @@ const ManageAccount = () => {
   // ── Fetch teachers/admins + students (shared by all child panels) ──
   const getUsers = useCallback(() => {
     if (!currentUser) return;
-    if (currentUser.role === 'teacher' && !hasLoadedAssignedStudents) return;
+    const roles = getRoles(currentUser);
+    const teacherOnly = roles.includes('teacher') && !roles.includes('admin');
+    if (teacherOnly && !hasLoadedAssignedStudents) return;
 
     fetch(`${API_BASE_URL}/getUsers`, { method: 'GET', credentials: 'include' })
       .then((r) => r.json())
@@ -213,7 +232,7 @@ const ManageAccount = () => {
 
             setTeachers(staffList);
             setStudents(
-              currentUser.role === 'teacher'
+              teacherOnly
                 ? studentList.filter((s) => assignedStudentIds.includes(s.id))
                 : studentList
             );

@@ -463,8 +463,8 @@
   gap: 8px;
 }
 
-.edit-btn,
-.delete-btn {
+.Edit-btn,
+.Delete-btn {
   padding: 6px 12px;
   border: none;
   border-radius: 6px;
@@ -475,28 +475,28 @@
   white-space: nowrap;
 }
 
-.edit-btn {
+.dit-btn {
   background-color: #3498db;
   color: white;
 }
 
-.edit-btn:hover:not(:disabled) {
+.Edit-btn:hover:not(:disabled) {
   background-color: #2980b9;
   transform: translateY(-1px);
 }
 
-.delete-btn {
+.Delete-btn {
   background-color: #e74c3c;
   color: white;
 }
 
-.delete-btn:hover:not(:disabled) {
+.Delete-btn:hover:not(:disabled) {
   background-color: #c0392b;
   transform: translateY(-1px);
 }
 
-.edit-btn:disabled,
-.delete-btn:disabled {
+.Edit-btn:disabled,
+.Delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
@@ -568,8 +568,8 @@
     flex-direction: column;
   }
   
-  .edit-btn,
-  .delete-btn {
+  .Edit-btn,
+  .Delete-btn {
     width: 100%;
   }
 }
@@ -708,8 +708,8 @@ input[type="date"]:invalid {
   gap: 8px;
 }
 
-.edit-btn,
-.delete-btn {
+.Edit-btn,
+.Delete-btn {
   width: 100%;
   text-align: center;
   padding: 8px 12px;
@@ -786,8 +786,8 @@ input[type="date"]:invalid {
     min-width: 120px;
   }
   
-  .edit-btn,
-  .delete-btn {
+  .Edit-btn,
+  .Delete-btn {
     width: auto;
     min-width: 60px;
   }
@@ -917,8 +917,8 @@ input[type="date"]:invalid {
     padding: 4px 8px;
   }
   
-  .edit-btn,
-  .delete-btn {
+  .Edit-btn,
+  .Delete-btn {
     padding: 6px 8px;
     font-size: 11px;
   }
@@ -1198,8 +1198,8 @@ input[type="date"]:invalid {
   gap: 5px !important;
 }
 
-.edit-btn,
-.delete-btn {
+.Edit-btn,
+.Delete-btn {
   padding: 4px 10px !important;
   font-size: 11px !important;
   border-radius: 4px !important;

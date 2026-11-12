@@ -435,7 +435,7 @@ const Coupon = () => {
                         <td>
                           <div className="action-buttons">
                             <button 
-                              className="edit-btn"
+                              className="Edit-btn"
                               onClick={() => handleEdit(coupon)}
                               disabled={coupon.usedMembers > 0}
                               title={coupon.usedMembers > 0 ? "Cannot edit: Coupon has been used" : "Edit coupon"}
@@ -443,7 +443,7 @@ const Coupon = () => {
                               Edit
                             </button>
                             <button 
-                              className="delete-btn"
+                              className="Delete-btn"
                               onClick={() => handleDelete(coupon.id)}
                               disabled={coupon.usedMembers > 0}
                               title={coupon.usedMembers > 0 ? "Cannot delete: Coupon has been used" : "Delete coupon"}
