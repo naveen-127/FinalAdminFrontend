@@ -98,7 +98,9 @@ const handleLanguageChange = (lang) => {
     }
   }, [lessonList]);
 
-
+const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+const videoFileInputRef = useRef(null);
 
   // Add this state variable near your other state declarations
   // Add near your existing state declarations
@@ -143,7 +145,7 @@ const handleLanguageChange = (lang) => {
     []
   );
 
-
+ 
 
   const [serverAudioFiles, setServerAudioFiles] = useState([]);
   useEffect(() => {
@@ -575,6 +577,152 @@ const handleLanguageChange = (lang) => {
     });
   };
 
+
+  // Upload a video file with progress (XHR, so we can show a % bar)
+const uploadVideoWithProgress = (file, folderName = "subtopics/videos") =>
+  new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folderName", folderName);
+
+    const xhr = new XMLHttpRequest();
+   xhr.open("POST", `${API_BASE_URL}/subtopic-video/upload`);
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        setVideoUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.fileUrl);
+        } catch (err) {
+          reject(new Error("Invalid server response"));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(formData);
+  });
+
+// Save (or clear) the video URL on the subtopic
+const saveVideoUrlToSubtopic = async (newUrl) => {
+  const unit = selectedSubTopicUnit;
+  if (!unit) throw new Error("No subtopic selected");
+  const unitId = unit._id || unit.id;
+
+  const payload = {
+    dbname: courseName,
+    subjectName: targetSubject,
+    standard: standard,
+    parentId: unitId,
+    rootId: firstClicked,
+    unitName: unit.unitName,
+    explanation: unit.explanation || "",
+    customDescription: unit.customDescription || "",
+    description: unit.customDescription || unit.explanation || "",
+    audioFileId: unit.audioFileId || [],
+    imageUrls: unit.imageUrls || [],
+    tags: unit.tags || [],
+    aiVideoUrl: newUrl, // "" = delete
+    tableData: unit.tableData || [],
+    rows: unit.rows || 1,
+    cols: unit.cols || 1,
+    showMatches: unit.showMatches || false,
+  };
+
+  const resp = await fetch(`${API_BASE_URL}/updateSubsection`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await resp.json();
+  if (data.status !== "updated") throw new Error("Could not save video URL");
+
+  // update local state
+  setSelectedSubTopicUnit((prev) => ({ ...prev, aiVideoUrl: newUrl }));
+  const updateTree = (units) =>
+    (units || []).map((u) =>
+      u.id === unitId || u._id === unitId
+        ? { ...u, aiVideoUrl: newUrl }
+        : { ...u, units: updateTree(u.units) }
+    );
+  setUnitData((prev) => updateTree(prev));
+};
+
+const handleVideoFileSelected = async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+
+  if (!file.type.startsWith("video/")) {
+    alert("❌ Please select a video file (mp4, webm, mov...)");
+    return;
+  }
+  if (file.size > 500 * 1024 * 1024) {
+    alert("❌ Video is larger than 500 MB");
+    return;
+  }
+
+  try {
+    setIsUploadingVideo(true);
+    setVideoUploadProgress(0);
+
+    const safeStd = (getUnitStandard(selectedSubTopicUnit) || standard || "std")
+      .toString().replace(/[^a-zA-Z0-9]/g, "_");
+    const safeSubject = (subjectName || "subject").replace(/[^a-zA-Z0-9]/g, "_");
+    const safeTopic = (selectedSubTopicUnit.unitName || "topic").replace(/[^a-zA-Z0-9]/g, "_");
+
+    const url = await uploadVideoWithProgress(
+      file,
+      `subtopics/videos/standard_${safeStd}/${safeSubject}/${safeTopic}`
+    );
+    if (!url) throw new Error("No URL returned from server");
+
+    await saveVideoUrlToSubtopic(url);
+    setToastMessage("✅ Video uploaded successfully!");
+    setTimeout(() => setToastMessage(""), 4000);
+  } catch (err) {
+    console.error(err);
+    alert(`❌ ${err.message}`);
+  } finally {
+    setIsUploadingVideo(false);
+    setVideoUploadProgress(0);
+  }
+};
+
+const handleDeleteAiVideo = async () => {
+  const oldUrl = selectedSubTopicUnit?.aiVideoUrl;
+  if (!oldUrl) return;
+  if (!window.confirm("Delete this video from the subtopic? This also removes the file from storage.")) return;
+
+  try {
+    await saveVideoUrlToSubtopic("");
+
+    // best-effort delete from S3 (backend endpoint below)
+    try {
+     await fetch(`${API_BASE_URL}/subtopic-video/delete-file`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileUrl: oldUrl }),
+      });
+    } catch (e) {
+      console.warn("S3 delete failed (DB link already removed):", e);
+    }
+
+    setToastMessage("🗑️ Video deleted");
+    setTimeout(() => setToastMessage(""), 4000);
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+};
   // Move lesson up/down - Updated to handle both root and nested lessons
   // Move lesson up/down - Updated for root-level units
   const handleMoveLesson = async (lesson, direction) => {
@@ -4005,93 +4153,111 @@ const handleLanguageChange = (lang) => {
                     </div>
                   )}
 
-                {/* 🔥 NEW: AI Video Section */}
-                {/* 🔥 NEW: AI Video Section with Rename URL Button */}
-                <div style={{ paddingLeft: "2px", marginBottom: "12px" }}>
-                  <h5>AI Generated Video:</h5>
-                  {selectedSubTopicUnit.aiVideoUrl ? (
-                    <div>
-                      <video
-                        controls
-                        src={selectedSubTopicUnit.aiVideoUrl}
-                        style={{
-                          width: "100%",
-                          maxWidth: "500px",
-                          borderRadius: "8px",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                      <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
-                        <a
-                          href={selectedSubTopicUnit.aiVideoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            padding: "8px 12px",
-                            backgroundColor: "#007bff",
-                            color: "white",
-                            textDecoration: "none",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                          }}
-                        >
-                          🔗 Open Video
-                        </a>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(selectedSubTopicUnit.aiVideoUrl);
-                            alert("Video URL copied to clipboard!");
-                          }}
-                          style={{
-                            padding: "8px 12px",
-                            backgroundColor: "#28a745",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          📋 Copy URL
-                        </button>
+   {/* Hidden file input for desktop video upload */}
+<input
+  ref={videoFileInputRef}
+  type="file"
+  accept="video/*"
+  style={{ display: "none" }}
+  onChange={handleVideoFileSelected}
+/>
 
-                        {/* 🔥 NEW: Rename URL Button */}
-                        {/* 🔥 ENHANCED: Rename Video File Button with full path editing */}
-                        <button
-                          onClick={handleRenameVideo}
-                          style={{
-                            padding: "8px 12px",
-                            backgroundColor: "#ffc107",
-                            color: "#212529",
-                            border: "none",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          ✏️ Rename Video File
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: "20px",
-                      textAlign: "center",
-                      backgroundColor: "#f8f9fa",
-                      borderRadius: "8px",
-                      border: "2px dashed #dee2e6"
-                    }}>
-                      <p style={{ color: "#6c757d", margin: "0" }}>
-                        🎬 No AI video generated yet
-                      </p>
-                      <p style={{ color: "#6c757d", fontSize: "14px", margin: "5px 0 0 0" }}>
-                        Click "Generate AI Video" to create an interactive lesson video
-                      </p>
-                    </div>
-                  )}
-                </div>
+<div style={{ paddingLeft: "2px", marginBottom: "12px" }}>
+  <h5>AI Generated Video:</h5>
+
+  {isUploadingVideo && (
+    <div style={{ margin: "10px 0", maxWidth: "500px" }}>
+      <div style={{ fontSize: "13px", marginBottom: "4px" }}>
+        ⏳ Uploading... {videoUploadProgress}%
+      </div>
+      <div style={{ background: "#e0e0e0", borderRadius: "6px", height: "10px" }}>
+        <div
+          style={{
+            width: `${videoUploadProgress}%`,
+            height: "100%",
+            background: "#28a745",
+            borderRadius: "6px",
+            transition: "width 0.2s",
+          }}
+        />
+      </div>
+    </div>
+  )}
+
+  {selectedSubTopicUnit.aiVideoUrl ? (
+    <div>
+      <video
+        key={selectedSubTopicUnit.aiVideoUrl}
+        controls
+        src={selectedSubTopicUnit.aiVideoUrl}
+        style={{ width: "100%", maxWidth: "500px", borderRadius: "8px", marginBottom: "10px" }}
+      >
+        Your browser does not support the video tag.
+      </video>
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
+        <a
+          href={selectedSubTopicUnit.aiVideoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ padding: "8px 12px", backgroundColor: "#007bff", color: "white", textDecoration: "none", borderRadius: "4px", fontSize: "14px" }}
+        >
+          🔗 Open Video
+        </a>
+
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(selectedSubTopicUnit.aiVideoUrl);
+            alert("Video URL copied to clipboard!");
+          }}
+          style={{ padding: "8px 12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px", fontSize: "14px", cursor: "pointer" }}
+        >
+          📋 Copy URL
+        </button>
+
+        <button
+          onClick={handleRenameVideo}
+          style={{ padding: "8px 12px", backgroundColor: "#ffc107", color: "#212529", border: "none", borderRadius: "4px", fontSize: "14px", cursor: "pointer" }}
+        >
+          ✏️ Rename Video File
+        </button>
+
+        {/* NEW: Replace */}
+        <button
+          disabled={isUploadingVideo}
+          onClick={() => videoFileInputRef.current?.click()}
+          style={{ padding: "8px 12px", backgroundColor: "#6f42c1", color: "white", border: "none", borderRadius: "4px", fontSize: "14px", cursor: isUploadingVideo ? "not-allowed" : "pointer", opacity: isUploadingVideo ? 0.6 : 1 }}
+        >
+          🔄 Replace Video
+        </button>
+
+        {/* NEW: Delete */}
+        <button
+          disabled={isUploadingVideo}
+          onClick={handleDeleteAiVideo}
+          style={{ padding: "8px 12px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px", fontSize: "14px", cursor: isUploadingVideo ? "not-allowed" : "pointer", opacity: isUploadingVideo ? 0.6 : 1 }}
+        >
+          🗑️ Delete Video
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div style={{ padding: "20px", textAlign: "center", backgroundColor: "#f8f9fa", borderRadius: "8px", border: "2px dashed #dee2e6" }}>
+      <p style={{ color: "#6c757d", margin: "0" }}>🎬 No video yet</p>
+      <p style={{ color: "#6c757d", fontSize: "14px", margin: "5px 0 10px 0" }}>
+        Generate an AI video, or upload one from your computer
+      </p>
+      {/* NEW: Upload */}
+      <button
+        disabled={isUploadingVideo}
+        onClick={() => videoFileInputRef.current?.click()}
+        style={{ padding: "8px 14px", backgroundColor: "#17a2b8", color: "white", border: "none", borderRadius: "4px", fontSize: "14px", cursor: isUploadingVideo ? "not-allowed" : "pointer" }}
+      >
+        ⬆️ Upload Video from Computer
+      </button>
+    </div>
+  )}
+</div>
                 <div style={{ marginTop: "15px", marginBottom: "15px" }}>
                   <button
                     className="generate-button"
