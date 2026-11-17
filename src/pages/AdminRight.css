@@ -617,3 +617,11 @@ button[title="Move Down"]:disabled {
     width: 100%;
   }
 }
+/* Highlight the currently selected lesson or subtopic */
+.left-panel li button.selected-unit {
+  background: #fff3cd !important;
+  color: #14532d !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  font-weight: 700 !important;
+}
