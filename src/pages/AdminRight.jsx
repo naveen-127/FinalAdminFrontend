@@ -1059,6 +1059,24 @@ const handleDeleteAiVideo = async () => {
     return null;
   };
 
+  // Scroll the selected item into view in the left list
+useEffect(() => {
+  const id = selectedSubTopicUnit?.id || selectedSubTopicUnit?._id;
+  if (!id) return;
+
+  const t = setTimeout(() => {
+    const el = document.querySelector(`[data-unit-id="${id}"]`);
+    if (el) {
+      el.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth"
+      });
+    }
+  }, 100);
+
+  return () => clearTimeout(t);
+}, [selectedSubTopicUnit?.id, selectedSubTopicUnit?._id]);
+
   // Helper function to find test in unit data
   const findTestInUnitData = (unitData, testName) => {
     if (!unitData || !Array.isArray(unitData)) return null;
@@ -3208,6 +3226,9 @@ const handleDeleteAiVideo = async () => {
           const currentPath = parentPath
             ? `${parentPath}/${unit.unitName}`
             : unit.unitName;
+            const unitId = unit.id || unit._id;
+const selectedId = selectedSubTopicUnit?.id || selectedSubTopicUnit?._id;
+const isSelected = !!selectedId && unitId === selectedId;
 
           return (
             <li key={unit.id || currentPath}>
@@ -3218,22 +3239,24 @@ const handleDeleteAiVideo = async () => {
                   <div style={{ marginBottom: "0px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
                       <div style={{ flexGrow: 1 }}>
-                        <button
-                          className={unit.standard ? "lesson-btn" : "none"}
-                          style={{
-                            padding: unit.standard ? "none" : "0px",
-                            margin: unit.standard ? "none" : "0px",
-                            color: unit.standard ? undefined : "blue",
-                            background: unit.standard ? undefined : "none",
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            alignItems: "center",
-                            width: "100%"
-                          }}
-                          onClick={() => handleUnitClick(unit, currentPath)}
-                        >
-                          📚 {unit.unitName}
-                        </button>
+                     <button
+  data-unit-id={unitId}
+  className={`${unit.standard ? "lesson-btn" : "none"} ${
+    isSelected ? "selected-unit" : ""
+  }`}
+  style={{
+    padding: unit.standard ? "0" : "2px 6px",
+    margin: unit.standard ? "0" : "0px",
+    color: unit.standard ? undefined : "blue",
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    width: "100%",
+  }}
+  onClick={() => handleUnitClick(unit, currentPath)}
+>
+  📚 {unit.unitName}
+</button>
                       </div>
 
                       {unit.standard && (
