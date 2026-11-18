@@ -18,7 +18,7 @@ import katex from "katex";
  *  6. Supports $$..$$, \[..\], \(..\) as well as $..$.
  */
 
-console.log("[renderMathText] v3 loaded");
+console.log("[renderMathText] v5 loaded");
 
 // private-use characters used as placeholders (can never appear in real text)
 const M_OPEN = "";
@@ -28,7 +28,28 @@ const ESC_DOLLAR = "";
 // ---------------------------------------------------------------------------
 // 1. Repair LaTeX whose "\x" escape was turned into a control character
 // ---------------------------------------------------------------------------
-export const repairLatex = (s) =>
+// The Tamil translation step sometimes translated LaTeX keywords themselves, e.g.
+// \right -> "\\text{வலது}" and \left -> "\text{இடது}" (வலது = right, இடது = left).
+// Map them back. Add more pairs here if you find other translated commands.
+const TAMIL_KEYWORDS = [
+  ["வலது", "\\right"],
+  ["இடது", "\\left"],
+  ["மடங்கு", "\\times"],     // மடங்கு = times
+  ["தோராயமாக", "\\approx"],  // தோராயமாக = approximately
+];
+const restoreTamilKeywords = (s) =>
+  TAMIL_KEYWORDS.reduce(
+    (acc, [ta, cmd]) =>
+      acc.replace(new RegExp("\\\\*\\s*(?:\\\\)?text\\s*\\{\\s*" + ta + "\\s*\\}", "g"), " " + cmd + " "),
+    s
+  );
+
+export const repairLatex = (s0) => {
+  const s = restoreTamilKeywords(s0);
+  return repairControlChars(s);
+};
+
+const repairControlChars = (s) =>
   s
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\\r") //   \right \rho \rightarrow \rangle
@@ -48,7 +69,9 @@ export const repairLatex = (s) =>
     // restore the commonly damaged commands when they appear bare.
     .replace(/(?<![\\A-Za-z])ight(?=\s*(?:[)\]|.]|\\[}|]|\\rangle|\\rbrace|arrow))/g, "\\right")
     .replace(/(?<![\\A-Za-z])rac(?=\s*\{)/g, "\\frac")
-    .replace(/(?<![\\A-Za-z])imes(?![A-Za-z])/g, "\\times");
+    .replace(/(?<![\\A-Za-z])imes(?![A-Za-z])/g, "\\times")
+    // "\time10^{-11}" (the final "s" got lost)
+    .replace(/\\time(?![A-Za-z])/g, "\\times ");
 
 // ---------------------------------------------------------------------------
 // 2. Tamil (and other Indic / non-Latin letters) inside math -> \text{...}
@@ -163,6 +186,20 @@ const renderInline = (str, store, keyBase) => {
   return nodes;
 };
 
+
+// ---------------------------------------------------------------------------
+// Detect a whole line of un-delimited LaTeX
+// ---------------------------------------------------------------------------
+const looksLikeBareMath = (line) => {
+  if (line.includes(M_OPEN)) return false;                       // already has math
+  if (/[^\x00-\x7F]/.test(line)) return false;                   // Tamil etc. = normal text
+  const hasCmd = /\\[A-Za-z]{2,}/.test(line);
+  const hasCaret = /[A-Za-z0-9)}]\^[\w{(]/.test(line);
+  if (!hasCmd && !hasCaret) return false;
+  const stripped = line.replace(/\\[A-Za-z]+/g, " ");
+  return !/[A-Za-z]{4,}\s+[A-Za-z]{4,}/.test(stripped);         // not an English sentence
+};
+
 // ---------------------------------------------------------------------------
 // 5. Public API – same name/signature you already call everywhere
 // ---------------------------------------------------------------------------
@@ -177,8 +214,15 @@ export const parseTextWithFormulas = (texts) => {
 
   const { out, store } = extractMath(text);
 
-  return out.split("\n").map((line, i) => {
+  return out.split("\n").map((line0, i) => {
+    let line = line0;
     if (line.trim() === "") return <br key={i} />;
+
+    // A line that is clearly LaTeX but has no $...$ around it (e.g. "4T^2\propto a^3")
+    if (looksLikeBareMath(line)) {
+      store.push({ latex: line.trim(), display: false });
+      line = `${M_OPEN}${store.length - 1}${M_CLOSE}`;
+    }
 
     const bullet = line.trim().match(/^[*-]\s+(.*)$/);
     if (bullet) {
