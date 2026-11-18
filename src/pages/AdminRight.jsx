@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Pencil, Trash2 }                     from "lucide-react";
-import katex                                  from "katex";
+//import katex                                  from "katex";
 import parse                                  from "html-react-parser";
 import "katex/dist/katex.min.css";
 import { API_BASE_URL, FRONTEND_URL_AI }      from "../config";
 import { FaCheckCircle }                      from "react-icons/fa";
 import "./AdminRight.css";
+import { parseTextWithFormulas } from "../utils/renderMathText";
 
 const AdminRight = () => {
   const navigate = useNavigate();
@@ -3662,139 +3663,7 @@ const isSelected = !!selectedId && unitId === selectedId;
     }
   }, []);
 
-  const parseTextWithFormulas = (texts) => {
-    if (!texts) return null;
-
-    const text = texts.replace(/\\\\/g, "\\");
-    const TEMP_DOLLAR = "__DOLLAR__";
-    const safeText = text.replace(/\\\$/g, TEMP_DOLLAR);
-
-    // Split by lines to handle different formats
-    const lines = safeText.split('\n');
-
-    return lines.map((line, lineIndex) => {
-      // Skip empty lines or return break
-      if (line.trim() === '') {
-        return <br key={lineIndex} />;
-      }
-
-      // Handle bullet points (starting with * or -)
-      if (line.trim().match(/^[*-]\s/)) {
-        // Remove the bullet marker (* or -) and the following space
-        const bulletContent = line.trim().replace(/^[*-]\s/, '');
-        return (
-          <div key={lineIndex} style={{ marginLeft: '20px', marginBottom: '5px', display: 'flex' }}>
-            <span style={{ marginRight: '8px' }}>•</span>
-            <span>{parseLineWithFormatting(bulletContent)}</span>
-          </div>
-        );
-      }
-
-      // Handle numbered lists (starting with 1., 2., etc.)
-      else if (line.match(/^\d+\.\s/)) {
-        const match = line.match(/^(\d+)\.\s(.*)/);
-        if (match) {
-          return (
-            <div key={lineIndex} style={{ marginLeft: '20px', marginBottom: '5px', display: 'flex' }}>
-              <span style={{ marginRight: '8px' }}>{match[1]}.</span>
-              <span>{parseLineWithFormatting(match[2])}</span>
-            </div>
-          );
-        }
-      }
-
-      // Handle headings (starting with #)
-      else if (line.match(/^#\s/)) {
-        return (
-          <div key={lineIndex} style={{ fontWeight: 'bold', fontSize: '18px', margin: '10px 0 5px 0' }}>
-            {parseLineWithFormatting(line.substring(2))}
-          </div>
-        );
-      }
-
-      // Regular paragraph line
-      else {
-        return (
-          <div key={lineIndex} style={{ marginBottom: '5px' }}>
-            {parseLineWithFormatting(line)}
-          </div>
-        );
-      }
-    });
-  };
-
-  // Helper function to parse bold (**text**) and italic (__text__) formatting
-  const parseLineWithFormatting = (content) => {
-    // First handle bold formatting (**text**)
-    const partsWithBold = content.split(/(\*\*.*?\*\*)/g);
-
-    // Then for each part, handle italic formatting (__text__)
-    const result = partsWithBold.map((part, partIndex) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        // This is bold text, now check if it has italic inside
-        const boldContent = part.slice(2, -2);
-        const boldParts = boldContent.split(/(__.*?__)/g);
-
-        return (
-          <strong key={`bold-${partIndex}`}>
-            {boldParts.map((boldPart, boldIndex) => {
-              if (boldPart.startsWith('__') && boldPart.endsWith('__')) {
-                return (
-                  <em key={`bold-italic-${boldIndex}`}>
-                    {parseLineContent(boldPart.slice(2, -2))}
-                  </em>
-                );
-              }
-              return <span key={`bold-plain-${boldIndex}`}>{parseLineContent(boldPart)}</span>;
-            })}
-          </strong>
-        );
-      } else {
-        // Not bold, but might have italic (__text__)
-        const italicParts = part.split(/(__.*?__)/g);
-        return italicParts.map((italicPart, italicIndex) => {
-          if (italicPart.startsWith('__') && italicPart.endsWith('__')) {
-            return (
-              <em key={`italic-${partIndex}-${italicIndex}`}>
-                {parseLineContent(italicPart.slice(2, -2))}
-              </em>
-            );
-          }
-          return <span key={`plain-${partIndex}-${italicIndex}`}>{parseLineContent(italicPart)}</span>;
-        });
-      }
-    });
-
-    return <>{result}</>;
-  };
-
-  // Helper function to parse LaTeX formulas within text
-  const parseLineContent = (content) => {
-    const TEMP_DOLLAR = "__DOLLAR__";
-    const safeText = content.replace(/\\\$/g, TEMP_DOLLAR);
-    const parts = safeText.split(/(\$[^$]+\$)/g);
-
-    return parts.map((part, index) => {
-      if (part.startsWith("$") && part.endsWith("$")) {
-        const latex = part.slice(1, -1);
-        try {
-          const html = katex.renderToString(latex, {
-            throwOnError: false,
-            output: "html",
-          });
-          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
-        } catch (err) {
-          return (
-            <span key={index} style={{ color: "red" }}>
-              {latex}
-            </span>
-          );
-        }
-      } else {
-        return <span key={index}>{part.replaceAll(TEMP_DOLLAR, "$")}</span>;
-      }
-    });
-  };
+  
   //////////////////image part//////////////
 
   return (

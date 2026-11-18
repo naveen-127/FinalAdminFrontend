@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "html-react-parser": "^5.2.6",
-    "katex": "^0.16.22",
+    "katex": "^0.16.47",
     "lucide-react": "^0.511.0",
     "quill": "^2.0.3",
     "react": "^18.3.1",
